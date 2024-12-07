@@ -52,8 +52,9 @@
 #endif
 
 #if 1
-#    define FLUFF_CONSTEXPR static inline __attribute__((always_inline, unused))
-#    define FLUFF_CONSTEXPR_V static __attribute__((unused))
+#    define FLUFF_CONSTEXPR    static inline __attribute__((always_inline, unused))
+#    define FLUFF_CONSTEXPR_V  static __attribute__((unused))
+#    define FLUFF_THREAD_LOCAL _Thread_local
 #endif
 
 #define FLUFF_ERROR_RETURN __attribute__((warn_unused_result))

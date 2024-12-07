@@ -5,6 +5,7 @@
 #include <base.h>
 #include <core/config.h>
 #include <core/string.h>
+#include <core/instance.h>
 #include <parser/text.h>
 #include <parser/lexer.h>
 #include <parser/ast.h>

@@ -9,9 +9,7 @@
 #include <stdlib.h>
 
 FLUFF_API void fluff_private_test() {
-    FluffInterpreter * interpret = fluff_new_interpreter();
-    fluff_interpreter_read_file(interpret, "../hello.fluf");
-    fluff_free_interpreter(interpret);
+    
 }
 
 /* -==========

@@ -1,0 +1,45 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+		}
+	],
+	"build_systems":
+	[
+		{
+			"config": "Default",
+			"env":
+			{
+			},
+			"generator": "Unix Makefiles",
+			"name": "Default",
+			"target": "cmake_build",
+			"variants":
+			[
+				{
+					"build_target": "fluff",
+					"name": "fluff",
+				},
+				{
+					"artifact": "fluff",
+					"build_target": "fluff",
+					"name": "Run: fluff",
+					"target": "cmake_run",
+				},
+				{
+					"artifact": "fluff",
+					"build_target": "fluff",
+					"debug": true,
+					"name": "Run under GDB: fluff",
+					"target": "cmake_run",
+				},
+				{
+					"name": "ctest",
+					"target": "ctest_run",
+				}
+			],
+			"working_dir": "$folder/build",
+		}
+	],
+}

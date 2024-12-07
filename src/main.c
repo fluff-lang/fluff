@@ -12,8 +12,11 @@ int main(int argc, const char * argv[]) {
         return -1;
     }
     
+    FluffInstance * instance = fluff_new_instance();
+
     fluff_private_test();
 
+    fluff_free_instance(instance);
     fluff_close();
 
     return 0;
