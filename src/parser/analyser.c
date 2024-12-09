@@ -226,7 +226,8 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
 
         if (self->current_token->type == TOKEN_LPAREN) {
             lhs = _analyser_read_expr_call(self, lhs, in_call);
-            _analyser_consume(self, 1);
+            _analyser_expect(TOKEN_CATEGORY_RPAREN);
+            //_analyser_consume(self, 1);
             continue;
         } else _analyser_expect(TOKEN_CATEGORY_OPERATOR);
 
