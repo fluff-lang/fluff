@@ -14,7 +14,8 @@
    ==============- */
 
 FLUFF_CONSTEXPR_V ASTNode * _new_ast_node_from_token(Lexer * self, size_t i, AST * ast) {
-    switch (self->tokens[i].type) {
+    TokenType type = self->tokens[i].type;
+    switch (type) {
         case TOKEN_TRUE: case TOKEN_FALSE: 
             return _new_ast_node_bool(ast, self->tokens[i].data.b);
         case TOKEN_INTEGER_LITERAL:
@@ -22,8 +23,15 @@ FLUFF_CONSTEXPR_V ASTNode * _new_ast_node_from_token(Lexer * self, size_t i, AST
         case TOKEN_DECIMAL_LITERAL:
             return _new_ast_node_float(ast, self->tokens[i].data.f);
         case TOKEN_STRING_LITERAL:
-        case TOKEN_LABEL_LITERAL:
-            return _new_ast_node_string_n(ast, _lexer_token_string(self, i), _lexer_token_string_len(self, i));
+        case TOKEN_LABEL_LITERAL: {
+            ASTNode * node = _new_ast_node_string_n(ast, 
+                _lexer_token_string(self, i), _lexer_token_string_len(self, i)
+            );
+            if (type == TOKEN_LABEL_LITERAL) {
+                node->type = AST_LABEL_LITERAL;
+            }
+            return node;
+        }
         default: break;
     }
     return NULL;
@@ -74,11 +82,8 @@ FLUFF_CONSTEXPR_V struct {
 };
 
 FLUFF_CONSTEXPR_V TokenCategory literal_categories[] = {
-    TOKEN_CATEGORY_BOOL_LITERAL, 
-    TOKEN_CATEGORY_INTEGER_LITERAL, 
-    TOKEN_CATEGORY_DECIMAL_LITERAL, 
-    TOKEN_CATEGORY_STRING_LITERAL, 
-    TOKEN_CATEGORY_LABEL_LITERAL, 
+    TOKEN_CATEGORY_LITERAL, 
+    TOKEN_CATEGORY_LABEL, 
 };
 
 /* -=============
@@ -111,6 +116,10 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
             self->lexer->interpret->path, \
             self->current_token->start.line + 1, self->current_token->start.column + 1, ##__VA_ARGS__\
         )
+#define _analyser_expect(...) {\
+            static const TokenCategory c[] = { __VA_ARGS__ };\
+            _analyser_expect_n(self, c, FLUFF_LENOF(c));\
+        }
 
 #define TOKEN_FMT(__index)\
         _lexer_token_string_len(self->lexer, __index), _lexer_token_string(self->lexer, __index)
@@ -125,10 +134,8 @@ FLUFF_PRIVATE_API void _analyser_read(Analyser * self) {
 
 FLUFF_PRIVATE_API void _analyser_read_token(Analyser * self) {
     switch (_token_type_get_category(self->current_token->type)) {
-        case TOKEN_CATEGORY_INTEGER_LITERAL:
-        case TOKEN_CATEGORY_DECIMAL_LITERAL:
-        case TOKEN_CATEGORY_STRING_LITERAL:
-        case TOKEN_CATEGORY_LABEL_LITERAL:
+        case TOKEN_CATEGORY_LITERAL:
+        case TOKEN_CATEGORY_LABEL:
         case TOKEN_CATEGORY_LPAREN:
         case TOKEN_CATEGORY_RPAREN:
         case TOKEN_CATEGORY_LBRACE:
@@ -151,28 +158,30 @@ FLUFF_PRIVATE_API void _analyser_read_token(Analyser * self) {
         case TOKEN_CATEGORY_CLASS_DECL:
             { /* TODO: do some shit */ break; }
         case TOKEN_CATEGORY_OPERATOR_COMMA:
-            {  }
+            { /* TODO: do some shit */ break; }
+        case TOKEN_CATEGORY_END: {
+            _analyser_consume(self, 1);
+            break;
+        }
         default: break;
     }
 }
 
 FLUFF_PRIVATE_API void _analyser_read_expr(Analyser * self) {
-    ASTNode * node = _analyser_read_expr_pratt(self, 0);
+    ASTNode * node = _analyser_read_expr_pratt(self, 0, false);
     if (!node) _analyser_error("pratt parser returned null");
     _ast_node_suite_push(&self->ast->root, node);
 }
 
-FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit) {
+FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit, bool in_call) {
     if (!_analyser_is_within_bounds(self))
         return NULL;
 
+    TokenCategory category = _token_type_get_category(self->current_token->type);
     ASTNode * lhs = NULL;
-    switch (_token_type_get_category(self->current_token->type)) {
-        case TOKEN_CATEGORY_BOOL_LITERAL: 
-        case TOKEN_CATEGORY_INTEGER_LITERAL: 
-        case TOKEN_CATEGORY_DECIMAL_LITERAL: 
-        case TOKEN_CATEGORY_STRING_LITERAL: 
-        case TOKEN_CATEGORY_LABEL_LITERAL: {
+    switch (category) {
+        case TOKEN_CATEGORY_LITERAL: 
+        case TOKEN_CATEGORY_LABEL: {
             // Operand
             lhs = _new_ast_node_from_token(self->lexer, self->current_index, self->ast);
             break;
@@ -180,8 +189,8 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         case TOKEN_CATEGORY_LPAREN: {
             // Parenthesis
             _analyser_consume(self, 1);
-            lhs = _analyser_read_expr_pratt(self, 0);
-            _analyser_expect(self, TOKEN_CATEGORY_RPAREN);
+            lhs = _analyser_read_expr_pratt(self, 0, false);
+            _analyser_expect(TOKEN_CATEGORY_RPAREN);
             //_analyser_consume(self, 1);
             break;
         }
@@ -190,31 +199,47 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             TokenType op_type = self->current_token->type;
             _analyser_consume(self, 1);
 
-            //_analyser_expect_n(self, literal_categories, FLUFF_LENOF(literal_categories));
+            _analyser_expect(TOKEN_CATEGORY_LITERAL, TOKEN_CATEGORY_LABEL);
 
             return _new_ast_node_unary_operator(
                 self->ast, 
                 token_info[op_type].unary_op, 
-                _analyser_read_expr_pratt(self, token_info[op_type].prefix_prec)
+                _analyser_read_expr_pratt(self, token_info[op_type].prefix_prec, in_call)
             );
         }
-        default: _analyser_error("unexpected token %*s", TOKEN_FMT(self->current_index));
+        case TOKEN_CATEGORY_RPAREN: {
+            // Right parenthesis
+            if (in_call) return NULL;
+            // NOTE: purposeful fallthrough
+        }
+        default: _analyser_error("expected expression, got %s '%.*s'", 
+            _token_category_string(category), TOKEN_FMT(self->current_index)
+        );
     }
 
-    while (!_analyser_is_expr_end(self)) {
+    while (!_analyser_is_expr_end(self, in_call)) {
         Token * op = _analyser_consume(self, 1);
 
-        if (_analyser_is_expr_end(self))
+        if (_analyser_is_expr_end(self, in_call)) break;
+        if (self->current_token->type == TOKEN_RPAREN)
             break;
+
+        if (self->current_token->type == TOKEN_LPAREN) {
+            lhs = _analyser_read_expr_call(self, lhs, in_call);
+            _analyser_consume(self, 1);
+            continue;
+        } else _analyser_expect(TOKEN_CATEGORY_OPERATOR);
 
         int prec = token_info[op->type].infix_prec;
         if (prec < prec_limit) break;
 
         _analyser_consume(self, 1);
-        _analyser_expect_n(self, literal_categories, FLUFF_LENOF(literal_categories));
+
+        if (_analyser_is_expr_end(self, in_call)) break;
+        _analyser_expect(TOKEN_CATEGORY_LITERAL, TOKEN_CATEGORY_LABEL);
 
         lhs = _new_ast_node_operator(self->ast, token_info[op->type].op, 
-            lhs, _analyser_read_expr_pratt(self, prec)
+            lhs, _analyser_read_expr_pratt(self, prec, in_call)
         );
         if (self->current_token->type == TOKEN_RPAREN)
             break;
@@ -223,38 +248,56 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
     return lhs;
 }
 
-FLUFF_PRIVATE_API bool _analyser_expect(Analyser * self, TokenCategory category) {
-    TokenCategory token_category = _token_type_get_category(self->current_token->type);
-    if (token_category == category)
-        return true;
-    _analyser_error_recoverable("expected token %s, got '%*s' (%s) instead", 
-        _token_category_string(category), TOKEN_FMT(self->current_index), 
-        _token_category_string(token_category)
-    );
-    // TODO: make this pretend the token is in the desired category so the error is recoverable
-    return false;
+FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * top, bool in_call) {
+    _analyser_consume(self, 1);
+    ASTNode * node = top;
+    size_t count   = 1;
+    while (!_analyser_is_expr_end(self, in_call) && node) {
+        if (self->current_token->type == TOKEN_RPAREN) break;
+        if (count > 1) {
+            _analyser_expect(TOKEN_CATEGORY_OPERATOR_COMMA);
+            _analyser_consume(self, 1);
+        }
+
+        node->next = _analyser_read_expr_pratt(self, 0, true);
+        node       = node->next;
+        ++count;
+    }
+    return _new_ast_node_call(top->ast, top, count);
 }
 
-FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, TokenCategory * categories, size_t count) {
+FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, const TokenCategory * categories, size_t count) {
     TokenCategory category = _token_type_get_category(self->current_token->type);
 
-    size_t buffer_len = 0;
+    const char * strs[count];
+    size_t       lens[count];
+    size_t       len = 0;
     for (size_t i = 0; i < count; ++i) {
         if (category == categories[i]) return true;
-        buffer_len += (i != 0 ? 2 : 0) + strlen(_token_category_string(categories[i]));
+        strs[i] = _token_category_string(categories[i]);
+        lens[i] = strlen(strs[i]);
+        len += lens[i] + (i > 0 ? (i + 1 < count ? 2 : 4) : 0);
     }
 
-    char buffer[buffer_len + 1];
-    buffer[buffer_len] = '\0';
-    size_t i = 0;
-    while (i < buffer_len) {
-        const char * str = _token_category_string(categories[i]);
-        const size_t len = strlen(str);
-        strncpy(&buffer[i], str, len);
-        i += len;
+    char   buf[len];
+    size_t j = 0;
+    for (size_t i = 0; i < count; ++i) {
+        if (i > 0) {
+            if (i + 1 < count) {
+                strcpy(&buf[j], ", ");
+                j += 2;
+            } else {
+                strcpy(&buf[j], " or ");
+                j += 4;
+            }
+        }
+        strncpy(&buf[j], strs[i], lens[i]);
+        j += lens[i];
     }
-    _analyser_error("expected token %s, got %s", buffer, _token_category_string(category));
-    // TODO: this sucks so much holy shit please fix this for the love of god
+    _analyser_error("expected %.*s, got %s", 
+        (int)len, buf, _token_category_string(category)
+    );
+    // TODO: this looks like garbage but works perfectly so maybe fix it idk
     return false;
 }
 
@@ -281,10 +324,11 @@ FLUFF_PRIVATE_API Token * _analyser_peekp(Analyser * self, size_t index) {
     return &self->lexer->tokens[index];
 }
 
-FLUFF_PRIVATE_API bool _analyser_is_expr_end(Analyser * self) {
+FLUFF_PRIVATE_API bool _analyser_is_expr_end(Analyser * self, bool in_call) {
     if (!_analyser_is_within_bounds(self))
         _analyser_error("unexpected EOF");
-    return self->current_token->type == TOKEN_END;
+    return (!in_call && self->current_token->type == TOKEN_END) || 
+           (in_call  && self->current_token->type == TOKEN_COMMA);
 }
 
 FLUFF_PRIVATE_API bool _analyser_is_within_bounds(Analyser * self) {

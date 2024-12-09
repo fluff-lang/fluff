@@ -11,7 +11,7 @@
      Internals
    ==============- */
 
-FLUFF_THREAD_LOCAL static FluffInstance * global_instance = NULL;
+FLUFF_THREAD_LOCAL FluffInstance * global_instance = NULL;
 
 /* -=============
      Instance

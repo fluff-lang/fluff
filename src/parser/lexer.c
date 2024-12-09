@@ -616,11 +616,8 @@ FLUFF_PRIVATE_API void _lexer_dump(Lexer * self) {
 
 FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
     switch (category) {
-        case TOKEN_CATEGORY_BOOL_LITERAL:      return "'true' or 'false'";
-        case TOKEN_CATEGORY_INTEGER_LITERAL:   return "integer";
-        case TOKEN_CATEGORY_DECIMAL_LITERAL:   return "float";
-        case TOKEN_CATEGORY_STRING_LITERAL:    return "string";
-        case TOKEN_CATEGORY_LABEL_LITERAL:     return "label";
+        case TOKEN_CATEGORY_LITERAL:           return "literal";
+        case TOKEN_CATEGORY_LABEL:             return "label";
         case TOKEN_CATEGORY_LPAREN:            return "'('";
         case TOKEN_CATEGORY_RPAREN:            return "')'";
         case TOKEN_CATEGORY_LBRACE:            return "'{'";
@@ -629,6 +626,7 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
         case TOKEN_CATEGORY_RBRACKET:          return "']'";
         case TOKEN_CATEGORY_OPERATOR:          return "operator";
         case TOKEN_CATEGORY_OPERATOR_ARROW:    return "'->'";
+        case TOKEN_CATEGORY_OPERATOR_COLON:    return "':'";
         case TOKEN_CATEGORY_OPERATOR_DOT:      return "'.'";
         case TOKEN_CATEGORY_OPERATOR_ELLIPSIS: return "'...'";
         case TOKEN_CATEGORY_OPERATOR_COMMA:    return "','";
@@ -706,16 +704,15 @@ FLUFF_PRIVATE_API const char * _token_type_string(TokenType type) {
 
 FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
     switch (type) {
-        case TOKEN_INTEGER_LITERAL: return TOKEN_CATEGORY_INTEGER_LITERAL;
-        case TOKEN_DECIMAL_LITERAL: return TOKEN_CATEGORY_DECIMAL_LITERAL;
-        case TOKEN_STRING_LITERAL:  return TOKEN_CATEGORY_STRING_LITERAL;
+        case TOKEN_INTEGER_LITERAL: case TOKEN_DECIMAL_LITERAL: case TOKEN_STRING_LITERAL:
+            return TOKEN_CATEGORY_LITERAL;
 
         case TOKEN_TRUE: case TOKEN_FALSE: 
-            return TOKEN_CATEGORY_BOOL_LITERAL;
+            return TOKEN_CATEGORY_LITERAL;
 
-        case TOKEN_BOOL:  case TOKEN_INT: case TOKEN_FLOAT:  case TOKEN_STRING: 
-        case TOKEN_ARRAY: case TOKEN_END: case TOKEN_OBJECT: case TOKEN_LABEL_LITERAL: 
-            return TOKEN_CATEGORY_LABEL_LITERAL;
+        case TOKEN_BOOL:  case TOKEN_INT:    case TOKEN_FLOAT: case TOKEN_STRING: 
+        case TOKEN_ARRAY: case TOKEN_OBJECT: case TOKEN_LABEL_LITERAL: 
+            return TOKEN_CATEGORY_LABEL;
 
         case TOKEN_LPAREN:   return TOKEN_CATEGORY_LPAREN;
         case TOKEN_RPAREN:   return TOKEN_CATEGORY_RPAREN;
@@ -726,8 +723,7 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
         
         case TOKEN_EQUAL:       case TOKEN_PLUS:       case TOKEN_MINUS:
         case TOKEN_MULTIPLY:    case TOKEN_DIVIDE:     case TOKEN_MODULO:
-        case TOKEN_POWER:       case TOKEN_COLON:      case TOKEN_COMMA:
-        case TOKEN_DOT:         case TOKEN_ARROW:      case TOKEN_ELLIPSIS:
+        case TOKEN_POWER:       case TOKEN_ARROW:      case TOKEN_ELLIPSIS:
         case TOKEN_EQUALS:      case TOKEN_NOT_EQUALS: case TOKEN_LESS:
         case TOKEN_LESS_EQUALS: case TOKEN_GREATER:    case TOKEN_GREATER_EQUALS:
         case TOKEN_AND:         case TOKEN_OR:         case TOKEN_NOT:
@@ -735,6 +731,10 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
         case TOKEN_BIT_NOT:     case TOKEN_BIT_SHL:    case TOKEN_BIT_SHR:
         case TOKEN_IN:          case TOKEN_AS:         case TOKEN_IS:
             return TOKEN_CATEGORY_OPERATOR;
+        
+        case TOKEN_COLON: return TOKEN_CATEGORY_OPERATOR_COLON;
+        case TOKEN_COMMA: return TOKEN_CATEGORY_OPERATOR_COMMA;
+        case TOKEN_DOT:   return TOKEN_CATEGORY_OPERATOR_DOT;
 
         case TOKEN_IF: case TOKEN_ELSE: case TOKEN_FOR: case TOKEN_WHILE:
             return TOKEN_CATEGORY_CONTROL_FLOW;
@@ -744,6 +744,7 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
 
         case TOKEN_FUNC:  return TOKEN_CATEGORY_FUNC_DECL;
         case TOKEN_CLASS: return TOKEN_CATEGORY_CLASS_DECL;
+        case TOKEN_END:   return TOKEN_CATEGORY_END;
 
         default: return TOKEN_CATEGORY_NONE;
     } 

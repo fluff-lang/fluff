@@ -43,9 +43,9 @@ FIXME: MISSING FUNCTIONALITY
    =============- */
 
 typedef struct FluffVersion {
-    uint8_t major : 4;
-    uint8_t minor : 5;
-    uint8_t patch : 7;
+    uint8_t major;
+    uint8_t minor;
+    uint8_t patch;
 } FluffVersion;
 
 // Checkes if 2 fluf versions are compatible.

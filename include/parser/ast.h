@@ -44,12 +44,15 @@ typedef enum ASTNodeType {
 
     AST_OPERATOR, 
     AST_UNARY_OPERATOR, 
+    AST_CALL, 
+    AST_SUBSCRIPT, 
+
     AST_BOOL_LITERAL, 
     AST_INT_LITERAL, 
     AST_FLOAT_LITERAL, 
     AST_STRING_LITERAL, 
     AST_ARRAY_LITERAL, 
-    AST_LITERAL, 
+    AST_LABEL_LITERAL, 
 
     AST_SCOPE, 
     AST_IF, 
@@ -127,7 +130,6 @@ typedef union ASTNodeData {
     FluffInt    int_literal;
     FluffFloat  float_literal;
     FluffString string_literal;
-    size_t constant_id;
 
     ASTOperatorData      op;
     ASTUnaryOperatorData unary_op;
@@ -160,9 +162,10 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_int(AST * ast, FluffInt v);
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_float(AST * ast, FluffFloat v);
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_string(AST * ast, const char * str);
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_string_n(AST * ast, const char * str, size_t len);
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_constant(AST * ast, const char * str, size_t len);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_literal(AST * ast, const char * str, size_t len);
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorDataType op, ASTNode * lhs, ASTNode * rhs);
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTUnaryOperatorDataType op, ASTNode * expr);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_t count);
 
 // Frees a node regardless of status or reference count
 FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self);
@@ -177,8 +180,9 @@ FLUFF_PRIVATE_API void _ast_node_deref(ASTNode * self);
 
 typedef void (* FluffASTNodeTraverseCallback)(ASTNode *, ASTNode *, size_t);
 
-FLUFF_PRIVATE_API void _ast_node_traverse(ASTNode * self, FluffASTNodeTraverseCallback callback);
-FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size_t identation, FluffASTNodeTraverseCallback callback);
+FLUFF_PRIVATE_API void _ast_node_solve(ASTNode * self);
+FLUFF_PRIVATE_API void _ast_node_traverse(ASTNode * self, FluffASTNodeTraverseCallback callback, bool reverse);
+FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size_t identation, FluffASTNodeTraverseCallback callback, bool reverse);
 FLUFF_PRIVATE_API bool _ast_node_compare(const ASTNode * lhs, const ASTNode * rhs);
 
 FLUFF_PRIVATE_API void _ast_node_dump(ASTNode * self, size_t identation);
