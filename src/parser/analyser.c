@@ -199,7 +199,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             TokenType op_type = self->current_token->type;
             _analyser_consume(self, 1);
 
-            _analyser_expect(TOKEN_CATEGORY_LITERAL, TOKEN_CATEGORY_LABEL);
+            _analyser_expect(TOKEN_CATEGORY_LITERAL, TOKEN_CATEGORY_LABEL, TOKEN_CATEGORY_LPAREN);
 
             return _new_ast_node_unary_operator(
                 self->ast, 
@@ -237,7 +237,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         _analyser_consume(self, 1);
 
         if (_analyser_is_expr_end(self, in_call)) break;
-        _analyser_expect(TOKEN_CATEGORY_LITERAL, TOKEN_CATEGORY_LABEL);
+        _analyser_expect(TOKEN_CATEGORY_LITERAL, TOKEN_CATEGORY_LABEL, TOKEN_CATEGORY_LPAREN);
 
         lhs = _new_ast_node_operator(self->ast, token_info[op->type].op, 
             lhs, _analyser_read_expr_pratt(self, prec, in_call)

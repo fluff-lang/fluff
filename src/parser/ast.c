@@ -232,8 +232,8 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_
 }
 
 FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self) {
+    if (!self) return;
     if (&self->ast->root == self) return; // Avoiding free if the value is the root
-    if (self->parent) --self->parent->node_count;
     switch (self->type) {
         case AST_OPERATOR: {
             _free_ast_node(self->data.op.lhs);
@@ -244,6 +244,7 @@ FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self) {
             _free_ast_node(self->data.unary_op.expr);
             break;
         }
+        case AST_CALL:
         case AST_ARRAY_LITERAL:
         case AST_SCOPE: {
             ASTNode * current = self->data.suite.first;
