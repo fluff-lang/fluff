@@ -9,4 +9,4 @@ file(GLOB_RECURSE SOURCES src/*.c)
 include_directories(include/)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
-target_compile_options(${PROJECT_NAME} PUBLIC -gdwarf-4 -Wall -O0)
+target_compile_options(${PROJECT_NAME} PUBLIC -gdwarf-4 -Wall -O0 -DFLUFF_DEBUG)

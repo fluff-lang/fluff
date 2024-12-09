@@ -73,7 +73,7 @@ FLUFF_CONSTEXPR_V struct {
     [TOKEN_AND]            = { 11, 0, false, AST_OPERATOR_AND,     AST_UOPERATOR_NONE },
     [TOKEN_OR]             = { 12, 0, false, AST_OPERATOR_OR,      AST_UOPERATOR_NONE },
 
-    [TOKEN_EQUAL] = { 13, 0, true, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
+    [TOKEN_EQUAL] = { 13, 0, true, AST_OPERATOR_EQUAL, AST_UOPERATOR_NONE },
 
     [TOKEN_COMMA]    = { 13, 0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
     [TOKEN_COLON]    = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
@@ -304,6 +304,8 @@ FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, const TokenCategory *
 
 FLUFF_PRIVATE_API Token * _analyser_consume(Analyser * self, size_t n) {
     self->current_index += n;
+    if (self->current_index > self->lexer->token_count)
+        _analyser_error("unexpected EOF");
     self->current_token = &self->lexer->tokens[self->current_index];
     return self->current_token;
 }

@@ -10,6 +10,7 @@
 
 #include <base.h>
 #include <core/string.h>
+#include <parser/text.h>
 
 /* -===========
      Macros
@@ -20,8 +21,9 @@
 #define AST_CONSTANT_FLOAT  0x2
 #define AST_CONSTANT_STRING 0x3
 
-#define AST_NODE_UNIQUE   0x1
-#define AST_NODE_FOLDABLE 0x2
+#define AST_NODE_VISITED   0x1
+#define AST_NODE_FOLDABLE  0x2
+#define AST_NODE_REFERENCE 0x4
 
 /* -================
      ASTConstant
@@ -111,7 +113,7 @@ typedef struct ASTUnaryOperatorData {
 
 typedef struct ASTSuiteData {
     ASTNode * first;
-    size_t    count;
+    ASTNode * last;
 } ASTSuiteData;
 
 typedef struct ASTIfData {
@@ -148,6 +150,7 @@ typedef struct ASTNode {
     ASTNode * next;
 
     ASTNode * relative_next;
+    ASTNode * relative_prev;
 
     ASTNodeType type;
     ASTNodeData data;
@@ -156,8 +159,13 @@ typedef struct ASTNode {
     uint64_t hash;
 } ASTNode;
 
+// Creates a new node given [type]
 FLUFF_PRIVATE_API ASTNode * _new_ast_node(AST * ast, ASTNodeType type);
+
+// Creates a new node given [type]
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_bool(AST * ast, FluffBool v);
+
+// Creates a new node given [type]
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_int(AST * ast, FluffInt v);
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_float(AST * ast, FluffFloat v);
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_string(AST * ast, const char * str);
@@ -170,7 +178,14 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_
 // Frees a node regardless of status or reference count
 FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self);
 
+// Links the node [a] to node [b]
+FLUFF_PRIVATE_API void _ast_node_link(ASTNode * a, ASTNode * b);
+
+// Unlinks a node and remove all their associated references
+FLUFF_PRIVATE_API void _ast_node_unlink(ASTNode * self);
+
 FLUFF_PRIVATE_API ASTNode * _ast_node_suite_push(ASTNode * self, ASTNode * node);
+FLUFF_PRIVATE_API ASTNode * _ast_node_suite_push_n(ASTNode * self, ASTNode * node, ASTNode * last, size_t count);
 
 // Adds one to a node's reference count
 FLUFF_PRIVATE_API void _ast_node_ref(ASTNode * self);
@@ -180,11 +195,11 @@ FLUFF_PRIVATE_API void _ast_node_deref(ASTNode * self);
 
 typedef void (* FluffASTNodeTraverseCallback)(ASTNode *, ASTNode *, size_t);
 
-FLUFF_PRIVATE_API void _ast_node_solve(ASTNode * self);
 FLUFF_PRIVATE_API void _ast_node_traverse(ASTNode * self, FluffASTNodeTraverseCallback callback, bool reverse);
 FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size_t identation, FluffASTNodeTraverseCallback callback, bool reverse);
 FLUFF_PRIVATE_API bool _ast_node_compare(const ASTNode * lhs, const ASTNode * rhs);
 
+FLUFF_PRIVATE_API void _ast_node_solve(ASTNode * self);
 FLUFF_PRIVATE_API void _ast_node_dump(ASTNode * self, size_t identation);
 
 /* -========
@@ -203,8 +218,8 @@ typedef struct AST {
 FLUFF_PRIVATE_API void _new_ast(AST * self);
 FLUFF_PRIVATE_API void _free_ast(AST * self);
 
-FLUFF_PRIVATE_API ASTNode * _ast_add_node(AST * self, ASTNode * node);
-FLUFF_PRIVATE_API void      _ast_remove_node(AST * self, ASTNode * node);
+FLUFF_PRIVATE_API void _ast_add_node(AST * self, ASTNode * node);
+FLUFF_PRIVATE_API void _ast_remove_node(AST * self, ASTNode * node);
 
 FLUFF_PRIVATE_API size_t _ast_push_constant(AST * self, void * data, size_t len);
 FLUFF_PRIVATE_API size_t _ast_find_constant(AST * self, void * data, size_t len);
