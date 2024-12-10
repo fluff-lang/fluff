@@ -59,8 +59,12 @@ typedef enum ASTNodeType {
     AST_SCOPE, 
     AST_IF, 
     AST_WHILE, 
+    AST_DECLARATION, 
     AST_FUNCTION, 
     AST_CLASS, 
+
+    AST_TYPE, 
+    AST_ANNOTATION, 
 } ASTNodeType;
 
 typedef enum ASTOperatorDataType {
@@ -90,6 +94,9 @@ typedef enum ASTOperatorDataType {
 
     AST_OPERATOR_DOT, 
     AST_OPERATOR_EQUAL, 
+    AST_OPERATOR_IN, 
+    AST_OPERATOR_IS, 
+    AST_OPERATOR_AS, 
 } ASTOperatorDataType;
 
 typedef struct ASTOperatorData {

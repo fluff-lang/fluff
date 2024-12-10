@@ -630,7 +630,10 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
         case TOKEN_CATEGORY_OPERATOR_DOT:      return "'.'";
         case TOKEN_CATEGORY_OPERATOR_ELLIPSIS: return "'...'";
         case TOKEN_CATEGORY_OPERATOR_COMMA:    return "','";
-        case TOKEN_CATEGORY_CONTROL_FLOW:      return "'if', 'else', 'while' or 'for'";
+        case TOKEN_CATEGORY_IF:                return "'if' statement";
+        case TOKEN_CATEGORY_ELSE:              return "'else' statement";
+        case TOKEN_CATEGORY_FOR:               return "'for' statement";
+        case TOKEN_CATEGORY_WHILE:             return "'while' statement";
         case TOKEN_CATEGORY_DECL:              return "declaration";
         case TOKEN_CATEGORY_FUNC_DECL:         return "function declaration";
         case TOKEN_CATEGORY_CLASS_DECL:        return "class declaration";
@@ -736,8 +739,10 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
         case TOKEN_COMMA: return TOKEN_CATEGORY_OPERATOR_COMMA;
         case TOKEN_DOT:   return TOKEN_CATEGORY_OPERATOR_DOT;
 
-        case TOKEN_IF: case TOKEN_ELSE: case TOKEN_FOR: case TOKEN_WHILE:
-            return TOKEN_CATEGORY_CONTROL_FLOW;
+        case TOKEN_IF:    return TOKEN_CATEGORY_IF;
+        case TOKEN_ELSE:  return TOKEN_CATEGORY_ELSE;
+        case TOKEN_FOR:   return TOKEN_CATEGORY_FOR;
+        case TOKEN_WHILE: return TOKEN_CATEGORY_WHILE;
 
         case TOKEN_LET: case TOKEN_CONST:
             return TOKEN_CATEGORY_DECL;

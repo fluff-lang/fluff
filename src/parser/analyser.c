@@ -37,6 +37,9 @@ FLUFF_CONSTEXPR_V ASTNode * _new_ast_node_from_token(Lexer * self, size_t i, AST
     return NULL;
 }
 
+#define MAKE_INFO(arr, prec, uprec, assoc, name, uname)\
+        [TOKEN_##arr] = { prec, uprec, assoc, AST_OPERATOR_##name, AST_UOPERATOR_##uname }
+
 FLUFF_CONSTEXPR_V struct {
     int  infix_prec;
     int  prefix_prec;
@@ -46,39 +49,35 @@ FLUFF_CONSTEXPR_V struct {
     ASTUnaryOperatorDataType unary_op;
 } token_info[] = {
     // NOTE: yes I copied half of these from C++ standard, how did you know
-    [TOKEN_DOT] = { 0, 0, false, AST_OPERATOR_DOT,  AST_UOPERATOR_NONE },
+    MAKE_INFO(EQUAL,          16, 0, true,  EQUAL,   NONE),
+    // (call operator)
+    MAKE_INFO(DOT,            15, 0,  false, DOT,     NONE),
+    MAKE_INFO(NOT,            14, 14, true,  NONE,    NOT),
+    MAKE_INFO(BIT_NOT,        14, 14, true,  NONE,    BIT_NOT),
+    MAKE_INFO(PLUS,           14, 14, true,  ADD,     PROMOTE),
+    MAKE_INFO(MINUS,          13, 14, true,  SUB,     NEGATE),
+    MAKE_INFO(MULTIPLY,       13, 0,  false, MUL,     NONE),
+    MAKE_INFO(DIVIDE,         12, 0,  false, DIV,     NONE),
+    MAKE_INFO(MODULO,         12, 0,  false, MOD,     NONE),
+    MAKE_INFO(POWER,          11, 0,  true,  POW,     NONE),
+    MAKE_INFO(BIT_SHL,        11, 0,  false, BIT_SHL, NONE),
+    MAKE_INFO(BIT_SHR,        10, 0,  false, BIT_SHR, NONE),
+    MAKE_INFO(LESS,           10, 0,  false, LT,      NONE),
+    MAKE_INFO(LESS_EQUALS,    10, 0,  false, LE,      NONE),
+    MAKE_INFO(GREATER,        10, 0,  false, GT,      NONE),
+    MAKE_INFO(GREATER_EQUALS, 9,  0,  false, GE,      NONE),
+    MAKE_INFO(EQUALS,         9,  0,  false, EQ,      NONE),
+    MAKE_INFO(NOT_EQUALS,     8,  0,  false, NE,      NONE),
+    MAKE_INFO(BIT_AND,        7,  0,  false, BIT_AND, NONE),
+    MAKE_INFO(BIT_XOR,        6,  0,  false, BIT_XOR, NONE),
+    MAKE_INFO(BIT_OR,         5,  0,  false, BIT_OR,  NONE),
+    MAKE_INFO(AND,            4,  0,  false, AND,     NONE),
+    MAKE_INFO(OR,             3,  0,  false, OR,      NONE),
 
-    [TOKEN_NOT] = { 1, 0, true, AST_OPERATOR_NONE, AST_UOPERATOR_NOT },
-
-    [TOKEN_BIT_NOT]  = { 1,  1, false, AST_OPERATOR_NONE, AST_UOPERATOR_BIT_NOT },
-    [TOKEN_PLUS]     = { 2,  2, false, AST_OPERATOR_ADD,  AST_UOPERATOR_PROMOTE },
-    [TOKEN_MINUS]    = { 2,  2, false, AST_OPERATOR_SUB,  AST_UOPERATOR_NEGATE  },
-    [TOKEN_MULTIPLY] = { 3,  0, false, AST_OPERATOR_MUL,  AST_UOPERATOR_NONE    },
-    [TOKEN_DIVIDE]   = { 3,  0, false, AST_OPERATOR_DIV,  AST_UOPERATOR_NONE    },
-    [TOKEN_MODULO]   = { 4,  0, false, AST_OPERATOR_MOD,  AST_UOPERATOR_NONE    },
-
-    [TOKEN_POWER] = { 4, 0, true, AST_OPERATOR_POW, AST_UOPERATOR_NONE },
-
-    [TOKEN_BIT_SHL]        = {  5, 0, false, AST_OPERATOR_BIT_SHL, AST_UOPERATOR_NONE },
-    [TOKEN_BIT_SHR]        = {  5, 0, false, AST_OPERATOR_BIT_SHR, AST_UOPERATOR_NONE },
-    [TOKEN_LESS]           = {  6, 0, false, AST_OPERATOR_LT,      AST_UOPERATOR_NONE },
-    [TOKEN_LESS_EQUALS]    = {  6, 0, false, AST_OPERATOR_LE,      AST_UOPERATOR_NONE },
-    [TOKEN_GREATER]        = {  6, 0, false, AST_OPERATOR_GT,      AST_UOPERATOR_NONE },
-    [TOKEN_GREATER_EQUALS] = {  6, 0, false, AST_OPERATOR_GE,      AST_UOPERATOR_NONE },
-    [TOKEN_EQUALS]         = {  7, 0, false, AST_OPERATOR_EQ,      AST_UOPERATOR_NONE },
-    [TOKEN_NOT_EQUALS]     = {  7, 0, false, AST_OPERATOR_NE,      AST_UOPERATOR_NONE },
-    [TOKEN_BIT_AND]        = {  8, 0, false, AST_OPERATOR_BIT_AND, AST_UOPERATOR_NONE },
-    [TOKEN_BIT_XOR]        = {  9, 0, false, AST_OPERATOR_BIT_XOR, AST_UOPERATOR_NONE },
-    [TOKEN_BIT_OR]         = { 10, 0, false, AST_OPERATOR_BIT_OR,  AST_UOPERATOR_NONE },
-    [TOKEN_AND]            = { 11, 0, false, AST_OPERATOR_AND,     AST_UOPERATOR_NONE },
-    [TOKEN_OR]             = { 12, 0, false, AST_OPERATOR_OR,      AST_UOPERATOR_NONE },
-
-    [TOKEN_EQUAL] = { 13, 0, true, AST_OPERATOR_EQUAL, AST_UOPERATOR_NONE },
-
-    [TOKEN_COMMA]    = { 13, 0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
-    [TOKEN_COLON]    = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
-    [TOKEN_ARROW]    = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
-    [TOKEN_ELLIPSIS] = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
+    // [TOKEN_COMMA]    = { 14, 0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
+    // [TOKEN_COLON]    = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
+    // [TOKEN_ARROW]    = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
+    // [TOKEN_ELLIPSIS] = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
 };
 
 FLUFF_CONSTEXPR_V TokenCategory literal_categories[] = {
@@ -145,26 +144,53 @@ FLUFF_PRIVATE_API void _analyser_read_token(Analyser * self) {
         case TOKEN_CATEGORY_OPERATOR:
         case TOKEN_CATEGORY_OPERATOR_ARROW:
         case TOKEN_CATEGORY_OPERATOR_DOT:
-        case TOKEN_CATEGORY_OPERATOR_ELLIPSIS: {
-            _analyser_read_expr(self);
-            break;
-        }
-        case TOKEN_CATEGORY_CONTROL_FLOW:
-            { /* TODO: do some shit */ break; }
+        case TOKEN_CATEGORY_OPERATOR_ELLIPSIS:
+            { _analyser_read_expr(self); break; }
+        case TOKEN_CATEGORY_IF:
+            { _analyser_read_if(self); break; }
+        case TOKEN_CATEGORY_FOR:
+            { _analyser_read_for(self); break; }
+        case TOKEN_CATEGORY_WHILE:
+            { _analyser_read_while(self); break; }
         case TOKEN_CATEGORY_DECL:
-            { /* TODO: do some shit */ break; }
+            { _analyser_read_decl(self); break; }
         case TOKEN_CATEGORY_FUNC_DECL:
-            { /* TODO: do some shit */ break; }
+            { _analyser_read_func(self); break; }
         case TOKEN_CATEGORY_CLASS_DECL:
-            { /* TODO: do some shit */ break; }
-        case TOKEN_CATEGORY_OPERATOR_COMMA:
-            { /* TODO: do some shit */ break; }
+            { _analyser_read_class(self); break; }
         case TOKEN_CATEGORY_END: {
             _analyser_consume(self, 1);
             break;
         }
-        default: break;
+        case TOKEN_CATEGORY_ELSE:
+            _analyser_error("'else' statement out of 'if' statement"); 
+        default:
+            _analyser_error("unexpected token '%.*s'", TOKEN_FMT(self->current_index));
     }
+}
+
+FLUFF_PRIVATE_API void _analyser_read_if(Analyser * self) {
+
+}
+
+FLUFF_PRIVATE_API void _analyser_read_for(Analyser * self) {
+
+}
+
+FLUFF_PRIVATE_API void _analyser_read_while(Analyser * self) {
+
+}
+
+FLUFF_PRIVATE_API void _analyser_read_decl(Analyser * self) {
+
+}
+
+FLUFF_PRIVATE_API void _analyser_read_func(Analyser * self) {
+
+}
+
+FLUFF_PRIVATE_API void _analyser_read_class(Analyser * self) {
+
 }
 
 FLUFF_PRIVATE_API void _analyser_read_expr(Analyser * self) {
@@ -183,32 +209,36 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         case TOKEN_CATEGORY_LITERAL: 
         case TOKEN_CATEGORY_LABEL: {
             // Operand
+            printf("found operand\n");
             lhs = _new_ast_node_from_token(self->lexer, self->current_index, self->ast);
             break;
         }
         case TOKEN_CATEGORY_LPAREN: {
             // Parenthesis
+            printf("found left parenthesis\n");
             _analyser_consume(self, 1);
             lhs = _analyser_read_expr_pratt(self, 0, false);
             _analyser_expect(TOKEN_CATEGORY_RPAREN);
+            printf("closing with a right parenthesis\n");
             //_analyser_consume(self, 1);
             break;
         }
         case TOKEN_CATEGORY_OPERATOR: {
             // Unary operator
+            printf("found unary operator\n");
             TokenType op_type = self->current_token->type;
             _analyser_consume(self, 1);
 
-            _analyser_expect(TOKEN_CATEGORY_LITERAL, TOKEN_CATEGORY_LABEL, TOKEN_CATEGORY_LPAREN);
-
-            return _new_ast_node_unary_operator(
-                self->ast, 
-                token_info[op_type].unary_op, 
-                _analyser_read_expr_pratt(self, token_info[op_type].prefix_prec, in_call)
-            );
+            ASTNode * node = _analyser_read_expr_pratt(self, token_info[op_type].prefix_prec, in_call);
+            if (!node) _analyser_error("pratt parser returned null");
+            printf("unary operator end\n");
+            lhs = _new_ast_node_unary_operator(self->ast, token_info[op_type].unary_op, node);
+            _analyser_rewind(self, 1);
+            break;
         }
         case TOKEN_CATEGORY_RPAREN: {
             // Right parenthesis
+            printf("found right parenthesis\n");
             if (in_call) return NULL;
             // NOTE: purposeful fallthrough
         }
@@ -218,34 +248,43 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
     }
 
     while (!_analyser_is_expr_end(self, in_call)) {
+        printf("new iteration (%d)\n", prec_limit);
         Token * op = _analyser_consume(self, 1);
-
+        printf("found token %zu\n", self->current_index);
         if (_analyser_is_expr_end(self, in_call)) break;
-        if (self->current_token->type == TOKEN_RPAREN)
-            break;
-
-        if (self->current_token->type == TOKEN_LPAREN) {
+        printf("not expression end\n");
+        
+        if (op->type == TOKEN_LPAREN) {
+            if (prec_limit > 14) {
+                _analyser_rewind(self, 1);
+                break;
+            }
             lhs = _analyser_read_expr_call(self, lhs, in_call);
             _analyser_expect(TOKEN_CATEGORY_RPAREN);
-            //_analyser_consume(self, 1);
             continue;
-        } else _analyser_expect(TOKEN_CATEGORY_OPERATOR);
+        }
+
+        if (op->type == TOKEN_RPAREN) break;
+
+        _analyser_expect(TOKEN_CATEGORY_OPERATOR, TOKEN_CATEGORY_OPERATOR_DOT);
 
         int prec = token_info[op->type].infix_prec;
         if (prec < prec_limit) break;
 
         _analyser_consume(self, 1);
 
-        if (_analyser_is_expr_end(self, in_call)) break;
-        _analyser_expect(TOKEN_CATEGORY_LITERAL, TOKEN_CATEGORY_LABEL, TOKEN_CATEGORY_LPAREN);
+        ASTNode * node = _analyser_read_expr_pratt(self, prec, in_call);
+        if (!node) _analyser_error("pratt parser returned null");
+        if (token_info[op->type].right_associative)
+            lhs = _new_ast_node_operator(self->ast, token_info[op->type].op, lhs, node);
+        else
+            lhs = _new_ast_node_operator(self->ast, token_info[op->type].op, node, lhs);
 
-        lhs = _new_ast_node_operator(self->ast, token_info[op->type].op, 
-            lhs, _analyser_read_expr_pratt(self, prec, in_call)
-        );
         if (self->current_token->type == TOKEN_RPAREN)
             break;
     }
-
+    printf("RETURNING LHS\n");
+    _ast_node_dump(lhs, 0);
     return lhs;
 }
 
@@ -304,8 +343,6 @@ FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, const TokenCategory *
 
 FLUFF_PRIVATE_API Token * _analyser_consume(Analyser * self, size_t n) {
     self->current_index += n;
-    if (self->current_index > self->lexer->token_count)
-        _analyser_error("unexpected EOF");
     self->current_token = &self->lexer->tokens[self->current_index];
     return self->current_token;
 }

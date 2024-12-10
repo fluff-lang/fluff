@@ -109,20 +109,20 @@ FLUFF_CONSTEXPR void _ast_node_dump_callback(ASTNode * self, ASTNode * root, siz
             break;
         }
         case AST_BOOL_LITERAL: {
-            if (self->data.bool_literal) printf("true");
-            else                         printf("false");
+            if (self->data.bool_literal) printf(" true");
+            else                         printf(" false");
             break;
         }
         case AST_INT_LITERAL: {
-            printf("%ld", self->data.int_literal);
+            printf(" %ld", self->data.int_literal);
             break;
         }
         case AST_FLOAT_LITERAL: {
-            printf("%f", self->data.float_literal);
+            printf(" %f", self->data.float_literal);
             break;
         }
         case AST_STRING_LITERAL: {
-            printf("'%s'", self->data.string_literal.data);
+            printf(" '%s'", self->data.string_literal.data);
             break;
         }
         case AST_ARRAY_LITERAL: {
@@ -348,7 +348,7 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTUnaryOper
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_t count) {
     ASTNode * self         = _new_ast_node(ast, AST_CALL);
     self->data.suite.first = nodes;
-    self->node_count = count;
+    self->node_count       = count;
     nodes->parent          = self;
     return self;
 }
@@ -423,14 +423,14 @@ FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size
             case AST_ARRAY_LITERAL:
             case AST_SCOPE: {
                 ASTNode * node = self->data.suite.first;
-                if (self->type == AST_CALL && node)
+                if (self->type == AST_CALL && node) {
+                    _ast_node_traverse_n(node, root, identation + 1, callback, reverse);
                     node = node->next;
+                }
                 while (node) {
                     _ast_node_traverse_n(node, root, identation + 1, callback, reverse);
                     node = node->next;
                 }
-                if (self->type == AST_CALL)
-                    _ast_node_traverse_n(self->data.suite.first, root, identation + 1, callback, reverse);
                 break;
             }
             default: break;
