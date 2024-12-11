@@ -49,7 +49,8 @@ FLUFF_CONSTEXPR_V struct {
     ASTUnaryOperatorDataType unary_op;
 } token_info[] = {
     // NOTE: yes I copied half of these from C++ standard, how did you know
-    MAKE_INFO(EQUAL,          16, 0, true,  EQUAL,   NONE),
+    MAKE_INFO(COMMA,          17, 0, false, COMMA, NONE),
+    MAKE_INFO(EQUAL,          16, 0, true,  EQUAL, NONE),
     // (call operator)
     MAKE_INFO(DOT,            15, 0,  false, DOT,     NONE),
     MAKE_INFO(NOT,            14, 14, true,  NONE,    NOT),
@@ -100,21 +101,26 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 }
 
 // TODO: make ErrorPool class for supporting multiple errors
+#ifdef FLUFF_DEBUG
+#define _analyser_error_print(__fmt, ...)\
+        fluff_error_fmt(FLUFF_COMPILE_ERROR, "[%s:%d]:\n\t->%s:%zu:%zu: " __fmt, \
+            __FILE__, __LINE__, self->lexer->interpret->path, \
+            self->current_token->start.line + 1, self->current_token->start.column + 1, ##__VA_ARGS__\
+        )
+#else
+#define _analyser_error_print(__fmt, ...)\
+        fluff_error_fmt(FLUFF_COMPILE_ERROR, "%s:%zu:%zu: " __fmt, \
+            self->lexer->interpret->path, \
+            self->current_token->start.line + 1, self->current_token->start.column + 1, ##__VA_ARGS__\
+        )
+#endif
+
 #define _analyser_error(__fmt, ...)\
-        fluff_error_fmt(FLUFF_COMPILE_ERROR, "%s:%zu:%zu: " __fmt, \
-            self->lexer->interpret->path, \
-            self->current_token->start.line + 1, self->current_token->start.column + 1, ##__VA_ARGS__\
-        )
+        _analyser_error_print(__fmt, ##__VA_ARGS__)
 #define _analyser_error_recoverable(__fmt, ...)\
-        fluff_error_fmt(FLUFF_COMPILE_ERROR, "%s:%zu:%zu: " __fmt, \
-            self->lexer->interpret->path, \
-            self->current_token->start.line + 1, self->current_token->start.column + 1, ##__VA_ARGS__\
-        )
+        _analyser_error_print(__fmt, ##__VA_ARGS__)
 #define _analyser_warning(__fmt, ...)\
-        fluff_error_fmt(FLUFF_COMPILE_ERROR, "%s:%zu:%zu: " __fmt, \
-            self->lexer->interpret->path, \
-            self->current_token->start.line + 1, self->current_token->start.column + 1, ##__VA_ARGS__\
-        )
+        _analyser_error_print(__fmt, ##__VA_ARGS__)
 #define _analyser_expect(...) {\
             static const TokenCategory c[] = { __VA_ARGS__ };\
             _analyser_expect_n(self, c, FLUFF_LENOF(c));\
@@ -218,9 +224,8 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             printf("found left parenthesis\n");
             _analyser_consume(self, 1);
             lhs = _analyser_read_expr_pratt(self, 0, false);
-            _analyser_expect(TOKEN_CATEGORY_RPAREN);
+            _analyser_expect(TOKEN_CATEGORY_RPAREN, TOKEN_CATEGORY_OPERATOR_COMMA);
             printf("closing with a right parenthesis\n");
-            //_analyser_consume(self, 1);
             break;
         }
         case TOKEN_CATEGORY_OPERATOR: {
@@ -247,11 +252,11 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         );
     }
 
-    while (!_analyser_is_expr_end(self, in_call)) {
+    while (!_analyser_is_expr_end(self)) {
         printf("new iteration (%d)\n", prec_limit);
         Token * op = _analyser_consume(self, 1);
         printf("found token %zu\n", self->current_index);
-        if (_analyser_is_expr_end(self, in_call)) break;
+        if (_analyser_is_expr_end(self)) break;
         printf("not expression end\n");
         
         if (op->type == TOKEN_LPAREN) {
@@ -259,14 +264,17 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
                 _analyser_rewind(self, 1);
                 break;
             }
+            printf("function call\n");
             lhs = _analyser_read_expr_call(self, lhs, in_call);
-            _analyser_expect(TOKEN_CATEGORY_RPAREN);
-            continue;
+            _analyser_consume(self, 1);
+            break;
         }
 
         if (op->type == TOKEN_RPAREN) break;
 
-        _analyser_expect(TOKEN_CATEGORY_OPERATOR, TOKEN_CATEGORY_OPERATOR_DOT);
+        if (!in_call && self->current_token->type == TOKEN_COMMA)
+            _analyser_error("comma outside of function, array or class");
+        _analyser_expect(TOKEN_CATEGORY_OPERATOR, TOKEN_CATEGORY_OPERATOR_DOT, TOKEN_CATEGORY_OPERATOR_COMMA);
 
         int prec = token_info[op->type].infix_prec;
         if (prec < prec_limit) break;
@@ -280,8 +288,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         else
             lhs = _new_ast_node_operator(self->ast, token_info[op->type].op, node, lhs);
 
-        if (self->current_token->type == TOKEN_RPAREN)
-            break;
+        if (self->current_token->type == TOKEN_RPAREN) break;
     }
     printf("RETURNING LHS\n");
     _ast_node_dump(lhs, 0);
@@ -290,20 +297,11 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * top, bool in_call) {
     _analyser_consume(self, 1);
-    ASTNode * node = top;
-    size_t count   = 1;
-    while (!_analyser_is_expr_end(self, in_call) && node) {
-        if (self->current_token->type == TOKEN_RPAREN) break;
-        if (count > 1) {
-            _analyser_expect(TOKEN_CATEGORY_OPERATOR_COMMA);
-            _analyser_consume(self, 1);
-        }
-
-        node->next = _analyser_read_expr_pratt(self, 0, true);
-        node       = node->next;
-        ++count;
-    }
-    return _new_ast_node_call(top->ast, top, count);
+    printf("function call start\n");
+    top->next = _analyser_read_expr_pratt(self, 0, true);
+    _analyser_expect(TOKEN_CATEGORY_RPAREN, TOKEN_CATEGORY_OPERATOR_COMMA);
+    printf("function call end\n");
+    return _new_ast_node_call(top->ast, top, (top->next ? 2 : 1));
 }
 
 FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, const TokenCategory * categories, size_t count) {
@@ -364,11 +362,10 @@ FLUFF_PRIVATE_API Token * _analyser_peekp(Analyser * self, size_t index) {
     return &self->lexer->tokens[index];
 }
 
-FLUFF_PRIVATE_API bool _analyser_is_expr_end(Analyser * self, bool in_call) {
+FLUFF_PRIVATE_API bool _analyser_is_expr_end(Analyser * self) {
     if (!_analyser_is_within_bounds(self))
         _analyser_error("unexpected EOF");
-    return (!in_call && self->current_token->type == TOKEN_END) || 
-           (in_call  && self->current_token->type == TOKEN_COMMA);
+    return self->current_token->type == TOKEN_END;
 }
 
 FLUFF_PRIVATE_API bool _analyser_is_within_bounds(Analyser * self) {

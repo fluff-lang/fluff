@@ -43,7 +43,7 @@ FLUFF_PRIVATE_API Token * _analyser_rewind(Analyser * self, size_t n);
 FLUFF_PRIVATE_API Token * _analyser_peek(Analyser * self, int offset);
 FLUFF_PRIVATE_API Token * _analyser_peekp(Analyser * self, size_t p);
 FLUFF_PRIVATE_API bool    _analyser_is_eof(Analyser * self);
-FLUFF_PRIVATE_API bool    _analyser_is_expr_end(Analyser * self, bool in_call);
+FLUFF_PRIVATE_API bool    _analyser_is_expr_end(Analyser * self);
 FLUFF_PRIVATE_API bool    _analyser_is_within_bounds(Analyser * self);
 
 #endif

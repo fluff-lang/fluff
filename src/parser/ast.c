@@ -87,6 +87,14 @@ FLUFF_CONSTEXPR void _ast_node_dump_callback(ASTNode * self, ASTNode * root, siz
                     { printf("."); break; }
                 case AST_OPERATOR_EQUAL:
                     { printf("="); break; }
+                case AST_OPERATOR_COMMA:
+                    { printf(","); break; }
+                case AST_OPERATOR_IN:
+                    { printf("in"); break; }
+                case AST_OPERATOR_IS:
+                    { printf("is"); break; }
+                case AST_OPERATOR_AS:
+                    { printf("as"); break; }
                 default: break;
             }
             putchar('\'');
@@ -205,6 +213,14 @@ FLUFF_CONSTEXPR void _ast_node_solve_callback(ASTNode * self, ASTNode * root, si
                     { printf("dot"); break; }
                 case AST_OPERATOR_EQUAL:
                     { printf("equal"); break; }
+                case AST_OPERATOR_COMMA:
+                    { return; }
+                case AST_OPERATOR_IN:
+                    { printf("in"); break; }
+                case AST_OPERATOR_IS:
+                    { printf("is"); break; }
+                case AST_OPERATOR_AS:
+                    { printf("as"); break; }
                 default: break;
             }
             break;

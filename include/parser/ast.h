@@ -92,11 +92,12 @@ typedef enum ASTOperatorDataType {
     AST_OPERATOR_BIT_SHL, 
     AST_OPERATOR_BIT_SHR, 
 
-    AST_OPERATOR_DOT, 
-    AST_OPERATOR_EQUAL, 
     AST_OPERATOR_IN, 
     AST_OPERATOR_IS, 
     AST_OPERATOR_AS, 
+    AST_OPERATOR_DOT, 
+    AST_OPERATOR_EQUAL, 
+    AST_OPERATOR_COMMA, 
 } ASTOperatorDataType;
 
 typedef struct ASTOperatorData {
