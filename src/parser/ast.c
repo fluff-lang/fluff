@@ -364,6 +364,8 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTUnaryOper
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_t count) {
     ASTNode * self         = _new_ast_node(ast, AST_CALL);
     self->data.suite.first = nodes;
+    //ASTNode * current = nodes;
+    //while (current->type == AST_OPERATOR);
     self->node_count       = count;
     nodes->parent          = self;
     return self;

@@ -7,6 +7,7 @@
    =============- */
 
 #include <base.h>
+#include <parser/text.h>
 #include <parser/lexer.h>
 #include <parser/ast.h>
 
@@ -14,12 +15,27 @@
      Analyser
    =============- */
 
+typedef struct AnalyserState {
+    TokenType expect;
+
+    bool   in_call;
+    bool   in_statement;
+    size_t comma_count;
+} AnalyserState;
+
+typedef struct FluffInterpreter FluffInterpreter;
+
 typedef struct Analyser {
+    FluffInterpreter * interpret;
+
     AST   * ast;
     Lexer * lexer;
 
-    Token * current_token;
-    size_t  current_index;
+    AnalyserState state;
+
+    Token  * token;
+    size_t   index;
+    TextSect position;
 } Analyser;
 
 FLUFF_PRIVATE_API void _new_analyser(Analyser * self, Lexer * lexer);
@@ -34,10 +50,10 @@ FLUFF_PRIVATE_API void      _analyser_read_decl(Analyser * self);
 FLUFF_PRIVATE_API void      _analyser_read_func(Analyser * self);
 FLUFF_PRIVATE_API void      _analyser_read_class(Analyser * self);
 FLUFF_PRIVATE_API void      _analyser_read_expr(Analyser * self);
-FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit, bool in_call);
-FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * top, bool in_call);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * top);
 
-FLUFF_PRIVATE_API bool    _analyser_expect_n(Analyser * self, const TokenCategory * categories, size_t count);
+FLUFF_PRIVATE_API bool    _analyser_expect_n(Analyser * self, size_t idx, const TokenCategory * categories, size_t count);
 FLUFF_PRIVATE_API Token * _analyser_consume(Analyser * self, size_t n);
 FLUFF_PRIVATE_API Token * _analyser_rewind(Analyser * self, size_t n);
 FLUFF_PRIVATE_API Token * _analyser_peek(Analyser * self, int offset);

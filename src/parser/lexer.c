@@ -625,11 +625,11 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
         case TOKEN_CATEGORY_LBRACKET:          return "'['";
         case TOKEN_CATEGORY_RBRACKET:          return "']'";
         case TOKEN_CATEGORY_OPERATOR:          return "operator";
-        case TOKEN_CATEGORY_OPERATOR_ARROW:    return "'->'";
-        case TOKEN_CATEGORY_OPERATOR_COLON:    return "':'";
-        case TOKEN_CATEGORY_OPERATOR_DOT:      return "'.'";
-        case TOKEN_CATEGORY_OPERATOR_ELLIPSIS: return "'...'";
-        case TOKEN_CATEGORY_OPERATOR_COMMA:    return "','";
+        case TOKEN_CATEGORY_OPERATOR_ARROW:    return "arrow";
+        case TOKEN_CATEGORY_OPERATOR_COLON:    return "colon";
+        case TOKEN_CATEGORY_OPERATOR_DOT:      return "dot operator";
+        case TOKEN_CATEGORY_OPERATOR_ELLIPSIS: return "ellipsis";
+        case TOKEN_CATEGORY_OPERATOR_COMMA:    return "comma";
         case TOKEN_CATEGORY_IF:                return "'if' statement";
         case TOKEN_CATEGORY_ELSE:              return "'else' statement";
         case TOKEN_CATEGORY_FOR:               return "'for' statement";
@@ -637,7 +637,7 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
         case TOKEN_CATEGORY_DECL:              return "declaration";
         case TOKEN_CATEGORY_FUNC_DECL:         return "function declaration";
         case TOKEN_CATEGORY_CLASS_DECL:        return "class declaration";
-        case TOKEN_CATEGORY_END:               return ";";
+        case TOKEN_CATEGORY_END:               return "semicolon";
         default:                               return "";
     }
 }
