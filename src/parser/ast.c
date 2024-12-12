@@ -209,19 +209,15 @@ FLUFF_CONSTEXPR void _ast_node_solve_callback(ASTNode * self, ASTNode * root, si
                     { printf("bit_shl"); break; }
                 case AST_OPERATOR_BIT_SHR:
                     { printf("bit_shr"); break; }
-                case AST_OPERATOR_DOT:
-                    { printf("dot"); break; }
                 case AST_OPERATOR_EQUAL:
                     { printf("equal"); break; }
-                case AST_OPERATOR_COMMA:
-                    { return; }
                 case AST_OPERATOR_IN:
                     { printf("in"); break; }
                 case AST_OPERATOR_IS:
                     { printf("is"); break; }
                 case AST_OPERATOR_AS:
                     { printf("as"); break; }
-                default: break;
+                default: return;
             }
             break;
         }
@@ -261,7 +257,12 @@ FLUFF_CONSTEXPR void _ast_node_solve_callback(ASTNode * self, ASTNode * root, si
             break;
         }
         case AST_LABEL_LITERAL: {
-            printf("get_global %s", self->data.string_literal.data);
+            if (self->parent && self->parent->type == AST_OPERATOR && 
+                self->parent->data.op.rhs == self && self->parent->data.op.type == AST_OPERATOR_DOT)
+            {
+                printf("get_member");
+            } else printf("get_global");
+            printf(" %s", self->data.string_literal.data);
             break;
         }
         case AST_CALL: {

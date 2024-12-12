@@ -20,6 +20,7 @@ typedef struct AnalyserState {
 
     bool   in_call;
     bool   in_statement;
+    bool   in_paren;
     size_t comma_count;
 } AnalyserState;
 

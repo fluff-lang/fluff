@@ -49,13 +49,14 @@ FLUFF_CONSTEXPR_V struct {
     ASTUnaryOperatorDataType unary_op;
 } token_info[] = {
     // NOTE: yes I copied half of these from C++ standard, how did you know
-    MAKE_INFO(EQUAL,          17, 0,  true,  EQUAL,   NONE),
+    MAKE_INFO(EQUAL,          18, 0,  true,  EQUAL,   NONE),
+    MAKE_INFO(LPAREN,         17, 0,  false, NONE,    NONE),
     MAKE_INFO(DOT,            16, 0,  false, DOT,     NONE),
-    MAKE_INFO(AS,             16, 0,  false, AS,      NONE),
-    MAKE_INFO(IS,             16, 0,  false, IS,      NONE),
-    MAKE_INFO(IN,             16, 0,  false, IN,      NONE),
-    MAKE_INFO(NOT,            15, 15, true,  NONE,    NOT),
-    MAKE_INFO(BIT_NOT,        15, 15, true,  NONE,    BIT_NOT),
+    MAKE_INFO(AS,             15, 0,  false, AS,      NONE),
+    MAKE_INFO(IS,             15, 0,  false, IS,      NONE),
+    MAKE_INFO(IN,             15, 0,  false, IN,      NONE),
+    MAKE_INFO(NOT,            14, 14, true,  NONE,    NOT),
+    MAKE_INFO(BIT_NOT,        14, 14, true,  NONE,    BIT_NOT),
     MAKE_INFO(MODULO,         13, 0,  false, MOD,     NONE),
     MAKE_INFO(POWER,          13, 0,  true,  POW,     NONE),
     MAKE_INFO(MULTIPLY,       12, 0,  false, MUL,     NONE),
@@ -218,6 +219,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
     if (!_analyser_is_within_bounds(self))
         return NULL;
 
+    printf("token %zu\n", self->index);
     AnalyserState prev_state = self->state;
 
     TokenCategory category = _token_type_get_category(self->token->type);
@@ -232,12 +234,14 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         case TOKEN_CATEGORY_LPAREN: {
             // Parenthesis
             _analyser_consume(self, 1);
-            self->state.expect = TOKEN_RPAREN;
+            self->state.expect  = TOKEN_RPAREN;
+            self->state.in_call = false;
             lhs = _analyser_read_expr_pratt(self, 0);
             _analyser_consume(self, 1);
             _analyser_expect(self->index, TOKEN_CATEGORY_RPAREN);
             self->state = prev_state;
-            return lhs;
+            if (self->state.in_call) return lhs;
+            break;
         }
         case TOKEN_CATEGORY_OPERATOR: {
             // Unary operator
@@ -248,12 +252,6 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             lhs = _new_ast_node_unary_operator(self->ast, token_info[op_type].unary_op, node);
             break;
         }
-        case TOKEN_CATEGORY_RPAREN: {
-            if (self->state.in_call) {
-                _analyser_rewind(self, 1);
-                return NULL;
-            } else _analyser_error("extraneous closing parenthesis");
-        }
         default: _analyser_error("expected expression, got %s '%.*s'", 
             _token_category_string(category), TOKEN_FMT(self->index)
         );
@@ -263,21 +261,22 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         TokenType type = _analyser_peek(self, 1)->type;
         _analyser_expect(self->index + 1, 
             TOKEN_CATEGORY_OPERATOR, TOKEN_CATEGORY_OPERATOR_DOT, TOKEN_CATEGORY_OPERATOR_COMMA, 
-            TOKEN_CATEGORY_LPAREN,   _token_type_get_category(self->state.expect)
+            TOKEN_CATEGORY_END, _token_type_get_category(self->state.expect), TOKEN_CATEGORY_LPAREN
         );
         if (type == self->state.expect) break;
-
-        if (type == TOKEN_LPAREN) {
-            if (prec_limit < 13) break;
-            lhs = _analyser_read_expr_call(self, lhs);
-            continue;
-        }
 
         int prec = token_info[type].infix_prec;
         if (prec < prec_limit) break;
 
+        if (type == TOKEN_LPAREN) {
+            _analyser_consume(self, 1);
+            lhs = _analyser_read_expr_call(self, lhs);
+            if (!lhs) _analyser_error("pratt parser returned null");
+            continue;
+        }
+
         _analyser_consume(self, 2);
-        ASTNode * rhs = _analyser_read_expr_pratt(self, prec_limit);
+        ASTNode * rhs = _analyser_read_expr_pratt(self, prec);
         if (!rhs) _analyser_error("pratt parser returned null");
         if (token_info[type].right_associative)
             lhs = _new_ast_node_operator(self->ast, token_info[type].op, rhs, lhs);
@@ -292,11 +291,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * top) {
     AnalyserState prev_state = self->state;
 
-    _analyser_consume(self, 1);
-    self->state.in_call = true;
-    self->state.expect  = TOKEN_RPAREN;
-    top->next           = _analyser_read_expr_pratt(self, 0);
-    _analyser_expect(self->index, TOKEN_CATEGORY_RPAREN);
+    if (_analyser_peek(self, 1)->type != TOKEN_RPAREN) {
+        self->state.in_call = true;
+        top->next           = _analyser_read_expr_pratt(self, 0);
+    } else _analyser_consume(self, 1);
 
     top = _new_ast_node_call(top->ast, top, self->state.comma_count + 1);
 
