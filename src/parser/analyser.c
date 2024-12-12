@@ -50,8 +50,8 @@ FLUFF_CONSTEXPR_V struct {
 } token_info[] = {
     // NOTE: yes I copied half of these from C++ standard, how did you know
     MAKE_INFO(EQUAL,          18, 0,  true,  EQUAL,   NONE),
-    MAKE_INFO(LPAREN,         17, 0,  false, NONE,    NONE),
-    MAKE_INFO(DOT,            16, 0,  false, DOT,     NONE),
+    MAKE_INFO(DOT,            17, 0,  false, DOT,     NONE),
+    MAKE_INFO(LPAREN,         16, 0,  false, NONE,    NONE),
     MAKE_INFO(AS,             15, 0,  false, AS,      NONE),
     MAKE_INFO(IS,             15, 0,  false, IS,      NONE),
     MAKE_INFO(IN,             15, 0,  false, IN,      NONE),
@@ -266,7 +266,9 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         if (type == self->state.expect) break;
 
         int prec = token_info[type].infix_prec;
+        //printf("prec %d vs %d on token %zu\n", prec, prec_limit, self->index + 1);
         if (prec < prec_limit) break;
+        //printf("condition met at token %zu\n", self->index + 1);
 
         if (type == TOKEN_LPAREN) {
             _analyser_consume(self, 1);
@@ -284,6 +286,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             lhs = _new_ast_node_operator(self->ast, token_info[type].op, lhs, rhs);
     }
 
+    //printf("returned\n");
     self->state = prev_state;
     return lhs;
 }

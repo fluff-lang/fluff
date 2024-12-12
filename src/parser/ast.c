@@ -211,6 +211,8 @@ FLUFF_CONSTEXPR void _ast_node_solve_callback(ASTNode * self, ASTNode * root, si
                     { printf("bit_shr"); break; }
                 case AST_OPERATOR_EQUAL:
                     { printf("equal"); break; }
+                case AST_OPERATOR_DOT:
+                    { printf("<dot>"); break; }
                 case AST_OPERATOR_IN:
                     { printf("in"); break; }
                 case AST_OPERATOR_IS:
