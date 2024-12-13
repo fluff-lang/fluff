@@ -16,7 +16,7 @@
 FLUFF_CONSTEXPR_V ASTNode * _new_ast_node_from_token(Lexer * self, size_t i, AST * ast) {
     TokenType type = self->tokens[i].type;
     switch (type) {
-        case TOKEN_TRUE: case TOKEN_FALSE: 
+        case TOKEN_BOOL_LITERAL:
             return _new_ast_node_bool(ast, self->tokens[i].data.b);
         case TOKEN_INTEGER_LITERAL:
             return _new_ast_node_int(ast, self->tokens[i].data.i);
@@ -136,6 +136,7 @@ FLUFF_PRIVATE_API void _analyser_read(Analyser * self) {
     self->token = self->lexer->tokens;
     _analyser_read_token(self);
     while (_analyser_is_within_bounds(self)) {
+        if (self->index + 1 >= self->lexer->token_count) break;
         _analyser_consume(self, 1);
         _analyser_read_token(self);
     }
@@ -169,10 +170,8 @@ FLUFF_PRIVATE_API void _analyser_read_token(Analyser * self) {
             { _analyser_read_func(self); break; }
         case TOKEN_CATEGORY_CLASS_DECL:
             { _analyser_read_class(self); break; }
-        case TOKEN_CATEGORY_END: {
-            _analyser_consume(self, 1);
-            break;
-        }
+        case TOKEN_CATEGORY_END:
+            { break; }
         case TOKEN_CATEGORY_ELSE:
             _analyser_error("'else' statement out of 'if' statement"); 
         default:
@@ -342,7 +341,7 @@ FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, size_t idx, const Tok
 
 FLUFF_PRIVATE_API Token * _analyser_consume(Analyser * self, size_t n) {
     self->index += n;
-    if (self->index > self->lexer->token_count)
+    if (self->index >= self->lexer->token_count)
         _analyser_error("unexpected EOF");
     self->token    = &self->lexer->tokens[self->index];
     self->position = self->token->start;

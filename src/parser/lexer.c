@@ -102,40 +102,176 @@ FLUFF_CONSTEXPR bool is_number_token_separator(char c, char c_ahead) {
     return is_space(c) || is_end_delimiter(c) || (c_ahead != '.' && is_operator(c));
 }
 
-FLUFF_CONSTEXPR TokenType label_match(const char * str, size_t n) {
-    // TODO: use a more efficient algorithm for comparasion
-    if (n > 5 || n < 2) return TOKEN_LABEL_LITERAL;
-    const struct {
-        TokenType type;
-        const char * str;
-        size_t       len;
-    } strings[] = {
-        { TOKEN_AND,    "and",    3 }, 
-        { TOKEN_OR,     "or",     2 }, 
-        { TOKEN_NOT,    "not",    3 }, 
-        { TOKEN_IF,     "if",     2 }, 
-        { TOKEN_ELSE,   "else",   4 }, 
-        { TOKEN_FOR,    "for",    3 }, 
-        { TOKEN_WHILE,  "while",  5 }, 
-        { TOKEN_IN,     "in",     2 }, 
-        { TOKEN_AS,     "as",     2 }, 
-        { TOKEN_IS,     "is",     2 }, 
-        { TOKEN_LET,    "let",    3 }, 
-        { TOKEN_CONST,  "const",  5 }, 
-        { TOKEN_FUNC,   "func",   4 }, 
-        { TOKEN_CLASS,  "class",  5 }, 
-        { TOKEN_TRUE,   "true",   4 }, 
-        { TOKEN_FALSE,  "false",  5 }, 
-        { TOKEN_INT,    "int",    3 }, 
-        { TOKEN_FLOAT,  "float",  5 }, 
-        { TOKEN_BOOL,   "bool",   4 }, 
-        { TOKEN_STRING, "string", 6 }, 
-        { TOKEN_OBJECT, "object", 6 }, 
-        { TOKEN_ARRAY,  "array",  5 }, 
-    };
-    for (size_t i = 0; i < FLUFF_LENOF(strings); ++i) {
-        if (strings[i].len == n && strncmp(str, strings[i].str, n) == 0)
-            return strings[i].type;
+FLUFF_CONSTEXPR TokenType label_match(Token * token, const char * str, size_t n) {
+    // NOTE: this function may seem very hardcoded but it actually performs the best.
+
+    /*
+        keywords by order of size:
+            2 = or, as, is, in, if
+            3 = and, not, let, for, int
+            4 = func, self, true, null, else, bool
+            5 = const, class, false, while, break, float, array, super
+            6 = string, object, return
+            8 = continue
+    */
+
+    switch (n) {
+        case 2: {
+            switch (str[0]) {
+                case 'i': {
+                    switch (str[1]) {
+                        case 's': return TOKEN_IS;
+                        case 'n': return TOKEN_IN;
+                        case 'f': return TOKEN_IF;
+                        default:  break;
+                    }
+                    break;
+                }
+                case 'a': {
+                    if (str[1] == 's') return TOKEN_AS;
+                    break;
+                }
+                case 'o': {
+                    if (str[1] == 'r') return TOKEN_OR;
+                    break;
+                }
+                default: break;
+            }
+            break;
+        }
+        case 3: {
+            switch (str[0]) {
+                case 'a': {
+                    if (str[1] == 'n' && str[2] == 'd') return TOKEN_AND;
+                    break;
+                }
+                case 'n': {
+                    if (str[1] == 'o' && str[2] == 't') return TOKEN_NOT;
+                    break;
+                }
+                case 'l': {
+                    if (str[1] == 'e' && str[2] == 't') return TOKEN_LET;
+                    break;
+                }
+                case 'f': {
+                    if (str[1] == 'o' && str[2] == 'r') return TOKEN_FOR;
+                    break;
+                }
+                case 'i': {
+                    if (str[1] == 'n' && str[2] == 't') return TOKEN_INT;
+                    break;
+                }
+                default: break;
+            }
+            break;
+        }
+        case 4: {
+            switch (str[0]) {
+                case 'f': {
+                    if (str[1] == 'u' && str[2] == 'n' && str[3] == 'c')
+                        return TOKEN_FUNC;
+                    break;
+                }
+                case 't': {
+                    if (str[1] == 'r' && str[2] == 'u' && str[3] == 'e') {
+                        token->data.b = true;
+                        return TOKEN_BOOL_LITERAL;
+                    }
+                    break;
+                }
+                case 'e': {
+                    if (str[1] == 'l' && str[2] == 's' && str[3] == 'e')
+                        return TOKEN_ELSE;
+                    break;
+                }
+                case 'b': {
+                    if (str[1] == 'o' && str[2] == 'o' && str[3] == 'l')
+                        return TOKEN_BOOL;
+                    break;
+                }
+                case 's': {
+                    if (str[1] == 'e' && str[2] == 'l' && str[3] == 'f')
+                        return TOKEN_SELF;
+                    break;
+                }
+                case 'n': {
+                    if (str[1] == 'u' && str[2] == 'l' && str[3] == 'l')
+                        return TOKEN_NULL;
+                    break;
+                }
+                default: break;
+            }
+            break;
+        }
+        case 5: {
+            switch (str[0]) {
+                case 'c': {
+                    if (str[1] == 'o' && str[2] == 'n' && str[3] == 's' && str[4] == 't')
+                        return TOKEN_CONST;
+                    if (str[1] == 'l' && str[2] == 'a' && str[3] == 's' && str[4] == 's')
+                        return TOKEN_CLASS;
+                    break;
+                }
+                case 'b': {
+                    if (str[1] == 'r' && str[2] == 'e' && str[3] == 'a' && str[4] == 'k')
+                        return TOKEN_BREAK;
+                    break;
+                }
+                case 'f': {
+                    if (str[1] == 'a' && str[2] == 'l' && str[3] == 's' && str[4] == 'e') {
+                        token->data.b = false;
+                        return TOKEN_BOOL_LITERAL;
+                    }
+                    if (str[1] == 'l' && str[2] == 'o' && str[3] == 'a' && str[4] == 't')
+                        return TOKEN_FLOAT;
+                    break;
+                }
+                case 'w': {
+                    if (str[1] == 'h' && str[2] == 'i' && str[3] == 'l' && str[4] == 'e')
+                        return TOKEN_WHILE;
+                    break;
+                }
+                case 'a': {
+                    if (str[1] == 'r' && str[2] == 'r' && str[3] == 'a' && str[4] == 'y')
+                        return TOKEN_ARRAY;
+                    break;
+                }
+                case 's': {
+                    if (str[1] == 'u' && str[2] == 'p' && str[3] == 'e' && str[4] == 'r')
+                        return TOKEN_SUPER;
+                    break;
+                }
+                default: break;
+            }
+            break;
+        }
+        case 6: {
+            switch (str[0]) {
+                case 's': {
+                    if (str[1] == 't' && str[2] == 'r' && str[3] == 'i' && str[4] == 'n' && str[5] == 'g')
+                        return TOKEN_STRING;
+                    break;
+                }
+                case 'o': {
+                    if (str[1] == 'b' && str[2] == 'j' && str[3] == 'e' && str[4] == 'c' && str[5] == 't')
+                        return TOKEN_OBJECT;
+                    break;
+                }
+                case 'r': {
+                    if (str[1] == 'e' && str[2] == 't' && str[3] == 'u' && str[4] == 'r' && str[5] == 'n')
+                        return TOKEN_RETURN;
+                    break;
+                }
+                default: break;
+            }
+            break;
+        }
+        case 8: {
+            if (str[0] == 'c' && str[1] == 'o' && str[2] == 'n' && str[3] == 't' && 
+                str[4] == 'i' && str[5] == 'n' && str[6] == 'u' && str[7] == 'e')
+                return TOKEN_CONTINUE;
+        }
+        default: break;
     }
     return TOKEN_LABEL_LITERAL;
 }
@@ -264,12 +400,10 @@ FLUFF_PRIVATE_API void _lexer_parse_label(Lexer * self) {
         _lexer_error("unexpected character '%c' in label", ch);
     }
 
-    token.type = label_match(
+    token.type = label_match(&token, 
         &self->str[self->prev_location.index], 
         self->location.index - self->prev_location.index
     );
-    if (token.type == TOKEN_TRUE)  token.data.b = true;
-    if (token.type == TOKEN_FALSE) token.data.b = false;
     _lexer_push(self, token);
 }
 
@@ -591,7 +725,7 @@ FLUFF_PRIVATE_API void _lexer_dump(Lexer * self) {
         );
 
         switch (token->type) {
-            case TOKEN_TRUE: case TOKEN_FALSE:
+            case TOKEN_BOOL_LITERAL:
                 { printf("%s", FLUFF_BOOLALPHA(token->data.b)); break; }
             case TOKEN_INTEGER_LITERAL:
                 { printf("%ld", token->data.i); break; }
@@ -645,6 +779,7 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
 FLUFF_PRIVATE_API const char * _token_type_string(TokenType type) {
     switch (type) {
         ENUM_CASE(TOKEN_NONE)
+        ENUM_CASE(TOKEN_BOOL_LITERAL)
         ENUM_CASE(TOKEN_INTEGER_LITERAL)
         ENUM_CASE(TOKEN_DECIMAL_LITERAL)
         ENUM_CASE(TOKEN_STRING_LITERAL)
@@ -689,16 +824,21 @@ FLUFF_PRIVATE_API const char * _token_type_string(TokenType type) {
         ENUM_CASE(TOKEN_IN)
         ENUM_CASE(TOKEN_AS)
         ENUM_CASE(TOKEN_IS)
+        ENUM_CASE(TOKEN_BREAK)
+        ENUM_CASE(TOKEN_CONTINUE)
+        ENUM_CASE(TOKEN_RETURN)
+        ENUM_CASE(TOKEN_SELF)
+        ENUM_CASE(TOKEN_SUPER)
+        ENUM_CASE(TOKEN_NULL)
         ENUM_CASE(TOKEN_LET)
         ENUM_CASE(TOKEN_CONST)
         ENUM_CASE(TOKEN_FUNC)
         ENUM_CASE(TOKEN_CLASS)
-        ENUM_CASE(TOKEN_TRUE)
-        ENUM_CASE(TOKEN_FALSE)
         ENUM_CASE(TOKEN_BOOL)
         ENUM_CASE(TOKEN_INT)
         ENUM_CASE(TOKEN_FLOAT)
         ENUM_CASE(TOKEN_STRING)
+        ENUM_CASE(TOKEN_OBJECT)
         ENUM_CASE(TOKEN_ARRAY)
         ENUM_CASE(TOKEN_END)
         default: return "";
@@ -710,7 +850,7 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
         case TOKEN_INTEGER_LITERAL: case TOKEN_DECIMAL_LITERAL: case TOKEN_STRING_LITERAL:
             return TOKEN_CATEGORY_LITERAL;
 
-        case TOKEN_TRUE: case TOKEN_FALSE: 
+        case TOKEN_BOOL_LITERAL: 
             return TOKEN_CATEGORY_LITERAL;
 
         case TOKEN_BOOL:  case TOKEN_INT:    case TOKEN_FLOAT: case TOKEN_STRING: 

@@ -53,6 +53,7 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category);
 typedef enum TokenType {
     TOKEN_NONE, 
     
+    TOKEN_BOOL_LITERAL, 
     TOKEN_INTEGER_LITERAL, 
     TOKEN_DECIMAL_LITERAL, 
     TOKEN_STRING_LITERAL, 
@@ -104,13 +105,19 @@ typedef enum TokenType {
     TOKEN_AS, 
     TOKEN_IS, 
 
+    TOKEN_BREAK, 
+    TOKEN_CONTINUE, 
+    TOKEN_RETURN, 
+
+    TOKEN_SELF, 
+    TOKEN_SUPER, 
+    TOKEN_NULL, 
+
     TOKEN_LET, 
     TOKEN_CONST, 
     TOKEN_FUNC, 
     TOKEN_CLASS, 
 
-    TOKEN_TRUE, 
-    TOKEN_FALSE, 
     TOKEN_BOOL, 
     TOKEN_INT, 
     TOKEN_FLOAT, 
