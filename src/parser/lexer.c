@@ -720,7 +720,7 @@ FLUFF_PRIVATE_API size_t _lexer_token_string_len(Lexer * self, size_t index) {
 FLUFF_PRIVATE_API void _lexer_dump(Lexer * self) {
     for (size_t i = 0; i < self->token_count; ++i) {
         const Token * token = &self->tokens[i];
-        printf("[%zu]:%zu:%zu = %s -> ", 
+        printf("[%zu]:%zu..%zu = %s -> ", 
             i, token->start.index, token->start.index + token->length, _token_type_string(token->type)
         );
 
@@ -752,12 +752,12 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
     switch (category) {
         case TOKEN_CATEGORY_LITERAL:           return "literal";
         case TOKEN_CATEGORY_LABEL:             return "label";
-        case TOKEN_CATEGORY_LPAREN:            return "'('";
-        case TOKEN_CATEGORY_RPAREN:            return "')'";
-        case TOKEN_CATEGORY_LBRACE:            return "'{'";
-        case TOKEN_CATEGORY_RBRACE:            return "'}'";
-        case TOKEN_CATEGORY_LBRACKET:          return "'['";
-        case TOKEN_CATEGORY_RBRACKET:          return "']'";
+        case TOKEN_CATEGORY_LPAREN:            return "parenthesis";
+        case TOKEN_CATEGORY_RPAREN:            return "closing parenthesis";
+        case TOKEN_CATEGORY_LBRACE:            return "brace";
+        case TOKEN_CATEGORY_RBRACE:            return "closing brace";
+        case TOKEN_CATEGORY_LBRACKET:          return "bracket";
+        case TOKEN_CATEGORY_RBRACKET:          return "closing bracket";
         case TOKEN_CATEGORY_OPERATOR:          return "operator";
         case TOKEN_CATEGORY_OPERATOR_ARROW:    return "arrow";
         case TOKEN_CATEGORY_OPERATOR_COLON:    return "colon";

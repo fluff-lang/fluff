@@ -16,6 +16,8 @@
    =============- */
 
 typedef struct AnalyserState {
+    ASTNode * last_scope;
+
     TokenType expect;
 
     bool   in_call;
@@ -43,14 +45,15 @@ FLUFF_PRIVATE_API void _new_analyser(Analyser * self, Lexer * lexer);
 FLUFF_PRIVATE_API void _free_analyser(Analyser * self);
 
 FLUFF_PRIVATE_API void      _analyser_read(Analyser * self);
-FLUFF_PRIVATE_API void      _analyser_read_token(Analyser * self);
-FLUFF_PRIVATE_API void      _analyser_read_if(Analyser * self);
-FLUFF_PRIVATE_API void      _analyser_read_for(Analyser * self);
-FLUFF_PRIVATE_API void      _analyser_read_while(Analyser * self);
-FLUFF_PRIVATE_API void      _analyser_read_decl(Analyser * self);
-FLUFF_PRIVATE_API void      _analyser_read_func(Analyser * self);
-FLUFF_PRIVATE_API void      _analyser_read_class(Analyser * self);
-FLUFF_PRIVATE_API void      _analyser_read_expr(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_if(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_for(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_while(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_scope(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_expr(Analyser * self, TokenType expect);
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit);
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * top);
 

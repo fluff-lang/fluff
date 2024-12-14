@@ -58,6 +58,7 @@ typedef enum ASTNodeType {
 
     AST_SCOPE, 
     AST_IF, 
+    AST_FOR, 
     AST_WHILE, 
     AST_DECLARATION, 
     AST_FUNCTION, 
@@ -125,14 +126,18 @@ typedef struct ASTSuiteData {
 } ASTSuiteData;
 
 typedef struct ASTIfData {
-    ASTNode    * cond_expr;
-    ASTSuiteData if_scope;
-    ASTSuiteData else_scope;
+    ASTNode * cond_expr;
+    ASTNode * if_scope;
+    ASTNode * else_scope;
 } ASTIfData;
 
+typedef struct ASTForData {
+
+} ASTForData;
+
 typedef struct ASTWhileData {
-    ASTNode    * cond_expr;
-    ASTSuiteData scope;
+    ASTNode * cond_expr;
+    ASTNode * scope;
 } ASTWhileData;
 
 typedef union ASTNodeData {
@@ -147,6 +152,7 @@ typedef union ASTNodeData {
     ASTSuiteData suite;
 
     ASTIfData    if_cond;
+    ASTForData   for_cond;
     ASTWhileData while_cond;
 } ASTNodeData;
 
@@ -157,31 +163,28 @@ typedef struct ASTNode {
 
     ASTNode * next;
 
-    ASTNode * relative_next;
-    ASTNode * relative_prev;
-
     ASTNodeType type;
     ASTNodeData data;
+
+    TextSect loc;
 
     uint8_t  flags;
     uint64_t hash;
 } ASTNode;
 
 // Creates a new node given [type]
-FLUFF_PRIVATE_API ASTNode * _new_ast_node(AST * ast, ASTNodeType type);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node(AST * ast, ASTNodeType type, TextSect loc);
 
 // Creates a new node given [type]
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_bool(AST * ast, FluffBool v);
-
-// Creates a new node given [type]
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_int(AST * ast, FluffInt v);
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_float(AST * ast, FluffFloat v);
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_string(AST * ast, const char * str);
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_string_n(AST * ast, const char * str, size_t len);
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_literal(AST * ast, const char * str, size_t len);
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorDataType op, ASTNode * lhs, ASTNode * rhs);
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTUnaryOperatorDataType op, ASTNode * expr);
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_t count);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_bool(AST * ast, FluffBool v, TextSect loc);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_int(AST * ast, FluffInt v, TextSect loc);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_float(AST * ast, FluffFloat v, TextSect loc);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_string(AST * ast, const char * str, TextSect loc);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_string_n(AST * ast, const char * str, size_t len, TextSect loc);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_literal(AST * ast, const char * str, size_t len, TextSect loc);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorDataType op, ASTNode * lhs, ASTNode * rhs, TextSect loc);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTUnaryOperatorDataType op, ASTNode * expr, TextSect loc);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_t count, TextSect loc);
 
 // Frees a node regardless of status or reference count
 FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self);

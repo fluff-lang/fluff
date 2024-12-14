@@ -13,19 +13,19 @@
      Internals
    ==============- */
 
-FLUFF_CONSTEXPR_V ASTNode * _new_ast_node_from_token(Lexer * self, size_t i, AST * ast) {
+FLUFF_CONSTEXPR_V ASTNode * _new_ast_node_from_token(Lexer * self, size_t i, AST * ast, TextSect loc) {
     TokenType type = self->tokens[i].type;
     switch (type) {
         case TOKEN_BOOL_LITERAL:
-            return _new_ast_node_bool(ast, self->tokens[i].data.b);
+            return _new_ast_node_bool(ast, self->tokens[i].data.b, loc);
         case TOKEN_INTEGER_LITERAL:
-            return _new_ast_node_int(ast, self->tokens[i].data.i);
+            return _new_ast_node_int(ast, self->tokens[i].data.i, loc);
         case TOKEN_DECIMAL_LITERAL:
-            return _new_ast_node_float(ast, self->tokens[i].data.f);
+            return _new_ast_node_float(ast, self->tokens[i].data.f, loc);
         case TOKEN_STRING_LITERAL:
         case TOKEN_LABEL_LITERAL: {
             ASTNode * node = _new_ast_node_string_n(ast, 
-                _lexer_token_string(self, i), _lexer_token_string_len(self, i)
+                _lexer_token_string(self, i), _lexer_token_string_len(self, i), loc
             );
             if (type == TOKEN_LABEL_LITERAL) {
                 node->type = AST_LABEL_LITERAL;
@@ -133,92 +133,145 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
         _lexer_token_string_len(self->lexer, __index), _lexer_token_string(self->lexer, __index)
 
 FLUFF_PRIVATE_API void _analyser_read(Analyser * self) {
-    self->token = self->lexer->tokens;
-    _analyser_read_token(self);
-    while (_analyser_is_within_bounds(self)) {
-        if (self->index + 1 >= self->lexer->token_count) break;
-        _analyser_consume(self, 1);
-        _analyser_read_token(self);
-    }
+    self->token        = self->lexer->tokens;
+    self->state.expect = TOKEN_NONE;
+    ASTNode * node = _analyser_read_scope(self);
+    if (node) _ast_node_suite_push(&self->ast->root, node);
 }
 
-FLUFF_PRIVATE_API void _analyser_read_token(Analyser * self) {
-    if (!_analyser_is_within_bounds(self)) return;
-    switch (_token_type_get_category(self->token->type)) {
+FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
+    if (!_analyser_is_within_bounds(self)) return NULL;
+    AnalyserState prev_state = self->state;
+
+    ASTNode * node = NULL;
+
+    TokenCategory category = _token_type_get_category(self->token->type);
+    switch (category) {
         case TOKEN_CATEGORY_LITERAL:
         case TOKEN_CATEGORY_LABEL:
         case TOKEN_CATEGORY_LPAREN:
-        case TOKEN_CATEGORY_RPAREN:
-        case TOKEN_CATEGORY_LBRACE:
-        case TOKEN_CATEGORY_RBRACE:
         case TOKEN_CATEGORY_LBRACKET:
-        case TOKEN_CATEGORY_RBRACKET:
         case TOKEN_CATEGORY_OPERATOR:
         case TOKEN_CATEGORY_OPERATOR_ARROW:
         case TOKEN_CATEGORY_OPERATOR_DOT:
         case TOKEN_CATEGORY_OPERATOR_ELLIPSIS:
-            { _analyser_read_expr(self); break; }
+            { node = _analyser_read_expr(self, TOKEN_END); break; }
         case TOKEN_CATEGORY_IF:
-            { _analyser_read_if(self); break; }
+            { node = _analyser_read_if(self); break; }
         case TOKEN_CATEGORY_FOR:
-            { _analyser_read_for(self); break; }
+            { node = _analyser_read_for(self); break; }
         case TOKEN_CATEGORY_WHILE:
-            { _analyser_read_while(self); break; }
+            { node = _analyser_read_while(self); break; }
         case TOKEN_CATEGORY_DECL:
-            { _analyser_read_decl(self); break; }
+            { node = _analyser_read_decl(self); break; }
         case TOKEN_CATEGORY_FUNC_DECL:
-            { _analyser_read_func(self); break; }
+            { node = _analyser_read_func(self); break; }
         case TOKEN_CATEGORY_CLASS_DECL:
-            { _analyser_read_class(self); break; }
+            { node = _analyser_read_class(self); break; }
+        case TOKEN_CATEGORY_LBRACE: {
+            self->state.expect = TOKEN_RBRACE;
+            _analyser_consume(self, 1);
+            node = _analyser_read_scope(self);
+            break;
+        }
         case TOKEN_CATEGORY_END:
             { break; }
+        case TOKEN_CATEGORY_RPAREN:
+        case TOKEN_CATEGORY_RBRACE:
+        case TOKEN_CATEGORY_RBRACKET: { 
+            _analyser_error("extraneous %s '%.*s'", 
+                _token_category_string(category), TOKEN_FMT(self->index)
+            );
+        }
         case TOKEN_CATEGORY_ELSE:
             _analyser_error("'else' statement out of 'if' statement"); 
         default:
             _analyser_error("unexpected token '%.*s'", TOKEN_FMT(self->index));
     }
+    self->state = prev_state;
+
+    if (category != TOKEN_CATEGORY_END) {
+        if (!node) _analyser_error("ast node returned null");
+
+        if (self->state.last_scope)
+            _ast_node_suite_push(self->state.last_scope, node);
+    }
+
+    return node;
 }
 
-FLUFF_PRIVATE_API void _analyser_read_if(Analyser * self) {
-
-}
-
-FLUFF_PRIVATE_API void _analyser_read_for(Analyser * self) {
-
-}
-
-FLUFF_PRIVATE_API void _analyser_read_while(Analyser * self) {
-
-}
-
-FLUFF_PRIVATE_API void _analyser_read_decl(Analyser * self) {
-
-}
-
-FLUFF_PRIVATE_API void _analyser_read_func(Analyser * self) {
-
-}
-
-FLUFF_PRIVATE_API void _analyser_read_class(Analyser * self) {
-
-}
-
-FLUFF_PRIVATE_API void _analyser_read_expr(Analyser * self) {
+FLUFF_PRIVATE_API ASTNode * _analyser_read_if(Analyser * self) {
     AnalyserState prev_state = self->state;
-    self->state.in_call = false;
-    self->state.expect  = TOKEN_END;
-    ASTNode * node = _analyser_read_expr_pratt(self, 0);
-    if (!node) _analyser_error("pratt parser returned null");
-    _ast_node_suite_push(&self->ast->root, node);
+
+    ASTNode * node = _new_ast_node(self->ast, AST_IF, self->token->start);
+    _analyser_consume(self, 1);
+    node->data.if_cond.cond_expr = _analyser_read_expr(self, TOKEN_LBRACE);
+    _analyser_consume(self, 2);
+    self->state.expect = TOKEN_RBRACE;
+    node->data.if_cond.if_scope = _analyser_read_scope(self);
+    if (self->index + 1 < self->lexer->token_count && _analyser_peek(self, 1)->type == TOKEN_ELSE) {
+        _analyser_consume(self, 2);
+        self->state.last_scope = NULL;
+        node->data.if_cond.else_scope = _analyser_read_token(self);
+    }
+    
+    self->state = prev_state;
+    return node;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_for(Analyser * self) {
+    return NULL;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_while(Analyser * self) {
+    return NULL;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self) {
+    return NULL;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self) {
+    return NULL;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self) {
+    return NULL;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_scope(Analyser * self) {
+    AnalyserState prev_state = self->state;
+
+    ASTNode * node = _new_ast_node(self->ast, AST_SCOPE, self->token->start);
+    self->state.last_scope = node;
+    while (_analyser_is_within_bounds(self)) {
+        if (self->token->type == self->state.expect) break;
+        _analyser_read_token(self);
+        if (self->index + 1 >= self->lexer->token_count) break;
+        _analyser_consume(self, 1);
+    }
+    if (self->state.expect != TOKEN_NONE)
+        _analyser_expect(self->index, _token_type_get_category(self->state.expect));
 
     self->state = prev_state;
+    return node;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_expr(Analyser * self, TokenType expect) {
+    AnalyserState prev_state = self->state;
+    self->state.in_call = false;
+    self->state.expect  = expect;
+    ASTNode * node = _analyser_read_expr_pratt(self, 0);
+    if (!node) _analyser_error("pratt parser returned null");
+    self->state = prev_state;
+    return node;
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit) {
     if (!_analyser_is_within_bounds(self))
         return NULL;
 
-    printf("token %zu\n", self->index);
+    //printf("token %zu\n", self->index);
     AnalyserState prev_state = self->state;
 
     TokenCategory category = _token_type_get_category(self->token->type);
@@ -227,7 +280,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         case TOKEN_CATEGORY_LITERAL: 
         case TOKEN_CATEGORY_LABEL: {
             // Operand
-            lhs = _new_ast_node_from_token(self->lexer, self->index, self->ast);
+            lhs = _new_ast_node_from_token(self->lexer, self->index, self->ast, self->token->start);
             break;
         }
         case TOKEN_CATEGORY_LPAREN: {
@@ -248,7 +301,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             _analyser_consume(self, 1);
             ASTNode * node = _analyser_read_expr_pratt(self, token_info[op_type].prefix_prec);
             if (!node) _analyser_error("pratt parser returned null");
-            lhs = _new_ast_node_unary_operator(self->ast, token_info[op_type].unary_op, node);
+            lhs = _new_ast_node_unary_operator(self->ast, 
+                token_info[op_type].unary_op, 
+                node, self->token->start
+            );
             break;
         }
         default: _analyser_error("expected expression, got %s '%.*s'", 
@@ -275,14 +331,19 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             if (!lhs) _analyser_error("pratt parser returned null");
             continue;
         }
+        if (type == TOKEN_COMMA && !self->state.in_call) {
+            _analyser_error("comma outside of function call, array or class declaration");
+        }
+
+        TextSect sect = self->token->start;
 
         _analyser_consume(self, 2);
         ASTNode * rhs = _analyser_read_expr_pratt(self, prec);
         if (!rhs) _analyser_error("pratt parser returned null");
         if (token_info[type].right_associative)
-            lhs = _new_ast_node_operator(self->ast, token_info[type].op, rhs, lhs);
+            lhs = _new_ast_node_operator(self->ast, token_info[type].op, rhs, lhs, sect);
         else
-            lhs = _new_ast_node_operator(self->ast, token_info[type].op, lhs, rhs);
+            lhs = _new_ast_node_operator(self->ast, token_info[type].op, lhs, rhs, sect);
     }
 
     //printf("returned\n");
@@ -293,12 +354,14 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * top) {
     AnalyserState prev_state = self->state;
 
+    TextSect sect = self->token->start;
+
     if (_analyser_peek(self, 1)->type != TOKEN_RPAREN) {
         self->state.in_call = true;
         top->next           = _analyser_read_expr_pratt(self, 0);
     } else _analyser_consume(self, 1);
 
-    top = _new_ast_node_call(top->ast, top, self->state.comma_count + 1);
+    top = _new_ast_node_call(top->ast, top, self->state.comma_count + 1, sect);
 
     self->state = prev_state;
     return top;

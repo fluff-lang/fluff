@@ -27,6 +27,7 @@ FLUFF_CONSTEXPR const char * _ast_node_type_get_name(ASTNodeType type) {
         case AST_LABEL_LITERAL:  return "LABEL_LITERAL";
         case AST_SCOPE:          return "SCOPE";
         case AST_IF:             return "IF";
+        case AST_FOR:            return "FOR";
         case AST_WHILE:          return "WHILE";
         case AST_FUNCTION:       return "FUNCTION";
         case AST_CLASS:          return "CLASS";
@@ -164,77 +165,96 @@ FLUFF_CONSTEXPR void _ast_node_dump_callback(ASTNode * self, ASTNode * root, siz
         }
         default: break;
     }
-    printf("> <children: %zu>\n", self->node_count);
+    printf("> <children: %zu", self->node_count);
+    if (self->loc.line && self->parent && self->parent->loc.line != self->loc.line) {
+        printf(", line: %zu", self->loc.line);
+    }
+    if (self->loc.column && self->parent && self->parent->loc.column != self->loc.column) {
+        printf(", column: %zu", self->loc.column);
+    }
+    printf(">\n");
+}
+
+FLUFF_CONSTEXPR void _ast_node_solve_operator(ASTNode * self, ASTOperatorDataType op) {
+    switch (self->data.op.type) {
+        case AST_OPERATOR_ADD:
+            { printf("add"); break; }
+        case AST_OPERATOR_SUB:
+            { printf("sub"); break; }
+        case AST_OPERATOR_MUL:
+            { printf("mul"); break; }
+        case AST_OPERATOR_DIV:
+            { printf("div"); break; }
+        case AST_OPERATOR_MOD:
+            { printf("mod"); break; }
+        case AST_OPERATOR_POW:
+            { printf("pow"); break; }
+        case AST_OPERATOR_EQ:
+            { printf("eq"); break; }
+        case AST_OPERATOR_NE:
+            { printf("ne"); break; }
+        case AST_OPERATOR_GT:
+            { printf("gt"); break; }
+        case AST_OPERATOR_GE:
+            { printf("ge"); break; }
+        case AST_OPERATOR_LT:
+            { printf("lt"); break; }
+        case AST_OPERATOR_LE:
+            { printf("le"); break; }
+        case AST_OPERATOR_AND:
+            { printf("and"); break; }
+        case AST_OPERATOR_OR:
+            { printf("or"); break; }
+        case AST_OPERATOR_BIT_AND:
+            { printf("bit_and"); break; }
+        case AST_OPERATOR_BIT_OR:
+            { printf("bit_or"); break; }
+        case AST_OPERATOR_BIT_XOR:
+            { printf("bit_xor"); break; }
+        case AST_OPERATOR_BIT_SHL:
+            { printf("bit_shl"); break; }
+        case AST_OPERATOR_BIT_SHR:
+            { printf("bit_shr"); break; }
+        case AST_OPERATOR_EQUAL:
+            { printf("equal"); break; }
+        case AST_OPERATOR_DOT:
+            { printf("<dot>"); break; }
+        case AST_OPERATOR_IN:
+            { printf("in"); break; }
+        case AST_OPERATOR_IS:
+            { printf("is"); break; }
+        case AST_OPERATOR_AS:
+            { printf("as"); break; }
+        default: break;
+    }
+}
+
+FLUFF_CONSTEXPR void _ast_node_solve_uoperator(ASTNode * self, ASTUnaryOperatorDataType op) {
+    switch (self->data.unary_op.type) {
+        case AST_UOPERATOR_NOT:
+            { printf("not"); break; }
+        case AST_UOPERATOR_BIT_NOT:
+            { printf("bit_not"); break; }
+        case AST_UOPERATOR_PROMOTE:
+            { printf("promote"); break; }
+        case AST_UOPERATOR_NEGATE:
+            { printf("negate"); break; }
+        default: break;
+    }
 }
 
 FLUFF_CONSTEXPR void _ast_node_solve_callback(ASTNode * self, ASTNode * root, size_t identation) {
+    if (!self) {
+        printf("<nop>\n");
+        return;
+    }
     switch (self->type) {
         case AST_OPERATOR: {
-            switch (self->data.op.type) {
-                case AST_OPERATOR_ADD:
-                    { printf("add"); break; }
-                case AST_OPERATOR_SUB:
-                    { printf("sub"); break; }
-                case AST_OPERATOR_MUL:
-                    { printf("mul"); break; }
-                case AST_OPERATOR_DIV:
-                    { printf("div"); break; }
-                case AST_OPERATOR_MOD:
-                    { printf("mod"); break; }
-                case AST_OPERATOR_POW:
-                    { printf("pow"); break; }
-                case AST_OPERATOR_EQ:
-                    { printf("eq"); break; }
-                case AST_OPERATOR_NE:
-                    { printf("ne"); break; }
-                case AST_OPERATOR_GT:
-                    { printf("gt"); break; }
-                case AST_OPERATOR_GE:
-                    { printf("ge"); break; }
-                case AST_OPERATOR_LT:
-                    { printf("lt"); break; }
-                case AST_OPERATOR_LE:
-                    { printf("le"); break; }
-                case AST_OPERATOR_AND:
-                    { printf("and"); break; }
-                case AST_OPERATOR_OR:
-                    { printf("or"); break; }
-                case AST_OPERATOR_BIT_AND:
-                    { printf("bit_and"); break; }
-                case AST_OPERATOR_BIT_OR:
-                    { printf("bit_or"); break; }
-                case AST_OPERATOR_BIT_XOR:
-                    { printf("bit_xor"); break; }
-                case AST_OPERATOR_BIT_SHL:
-                    { printf("bit_shl"); break; }
-                case AST_OPERATOR_BIT_SHR:
-                    { printf("bit_shr"); break; }
-                case AST_OPERATOR_EQUAL:
-                    { printf("equal"); break; }
-                case AST_OPERATOR_DOT:
-                    { printf("<dot>"); break; }
-                case AST_OPERATOR_IN:
-                    { printf("in"); break; }
-                case AST_OPERATOR_IS:
-                    { printf("is"); break; }
-                case AST_OPERATOR_AS:
-                    { printf("as"); break; }
-                default: return;
-            }
+            _ast_node_solve_operator(self, self->data.op.type);
             break;
         }
         case AST_UNARY_OPERATOR: {
-            switch (self->data.unary_op.type) {
-                case AST_UOPERATOR_NOT:
-                    { printf("not"); break; }
-                case AST_UOPERATOR_BIT_NOT:
-                    { printf("bit_not"); break; }
-                case AST_UOPERATOR_PROMOTE:
-                    { printf("promote"); break; }
-                case AST_UOPERATOR_NEGATE:
-                    { printf("negate"); break; }
-                default: break;
-            }
+            _ast_node_solve_operator(self, self->data.unary_op.type);
             break;
         }
         case AST_BOOL_LITERAL: {
@@ -297,53 +317,56 @@ FLUFF_CONSTEXPR void _ast_node_solve_callback(ASTNode * self, ASTNode * root, si
      ASTNode
    ============- */
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node(AST * ast, ASTNodeType type) {
+FLUFF_PRIVATE_API ASTNode * _new_ast_node(AST * ast, ASTNodeType type, TextSect loc) {
     ASTNode * self = fluff_alloc(NULL, sizeof(ASTNode));
     FLUFF_CLEANUP(self);
     self->type = type;
+    self->loc  = loc;
+    ++self->loc.line;
+    ++self->loc.column;
     return self;
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_bool(AST * ast, FluffBool v) {
-    ASTNode * self = _new_ast_node(ast, AST_BOOL_LITERAL);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_bool(AST * ast, FluffBool v, TextSect loc) {
+    ASTNode * self = _new_ast_node(ast, AST_BOOL_LITERAL, loc);
     self->data.bool_literal = v;
     self->hash = fluff_hash(&v, sizeof(v));
     return self;
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_int(AST * ast, FluffInt v) {
-    ASTNode * self = _new_ast_node(ast, AST_INT_LITERAL);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_int(AST * ast, FluffInt v, TextSect loc) {
+    ASTNode * self = _new_ast_node(ast, AST_INT_LITERAL, loc);
     self->data.int_literal = v;
     self->hash = fluff_hash(&v, sizeof(v));
     return self;
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_float(AST * ast, FluffFloat v) {
-    ASTNode * self = _new_ast_node(ast, AST_FLOAT_LITERAL);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_float(AST * ast, FluffFloat v, TextSect loc) {
+    ASTNode * self = _new_ast_node(ast, AST_FLOAT_LITERAL, loc);
     self->data.float_literal = v;
     self->hash = fluff_hash(&v, sizeof(v));
     return self;
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_string(AST * ast, const char * str) {
-    return _new_ast_node_string_n(ast, str, strlen(str));
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_string(AST * ast, const char * str, TextSect loc) {
+    return _new_ast_node_string_n(ast, str, strlen(str), loc);
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_string_n(AST * ast, const char * str, size_t len) {
-    ASTNode * self = _new_ast_node(ast, AST_STRING_LITERAL);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_string_n(AST * ast, const char * str, size_t len, TextSect loc) {
+    ASTNode * self = _new_ast_node(ast, AST_STRING_LITERAL, loc);
     _new_string_n(&self->data.string_literal, str, len);
     self->hash = fluff_hash(str, len);
     return self;
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_literal(AST * ast, const char * str, size_t len) {
-    ASTNode * self = _new_ast_node_string_n(ast, str, len);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_literal(AST * ast, const char * str, size_t len, TextSect loc) {
+    ASTNode * self = _new_ast_node_string_n(ast, str, len, loc);
     self->type = AST_LABEL_LITERAL;
     return self;
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorDataType op, ASTNode * lhs, ASTNode * rhs) {
-    ASTNode * self     = _new_ast_node(ast, AST_OPERATOR);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorDataType op, ASTNode * lhs, ASTNode * rhs, TextSect loc) {
+    ASTNode * self     = _new_ast_node(ast, AST_OPERATOR, loc);
     self->data.op.type = op;
     self->data.op.lhs  = lhs;
     self->data.op.rhs  = rhs;
@@ -354,8 +377,8 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorDataTyp
     return self;
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTUnaryOperatorDataType op, ASTNode * expr) {
-    ASTNode * self           = _new_ast_node(ast, AST_UNARY_OPERATOR);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTUnaryOperatorDataType op, ASTNode * expr, TextSect loc) {
+    ASTNode * self           = _new_ast_node(ast, AST_UNARY_OPERATOR, loc);
     self->data.unary_op.type = op;
     self->data.unary_op.expr = expr;
     expr->parent             = self;
@@ -364,8 +387,8 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTUnaryOper
     return self;
 }
 
-FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_t count) {
-    ASTNode * self         = _new_ast_node(ast, AST_CALL);
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_t count, TextSect loc) {
+    ASTNode * self         = _new_ast_node(ast, AST_CALL, loc);
     self->data.suite.first = nodes;
     //ASTNode * current = nodes;
     //while (current->type == AST_OPERATOR);
@@ -385,6 +408,17 @@ FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self) {
         }
         case AST_UNARY_OPERATOR: {
             _free_ast_node(self->data.unary_op.expr);
+            break;
+        }
+        case AST_IF: {
+            _free_ast_node(self->data.if_cond.cond_expr);
+            _free_ast_node(self->data.if_cond.if_scope);
+            _free_ast_node(self->data.if_cond.else_scope);
+            break;
+        }
+        case AST_WHILE: {
+            _free_ast_node(self->data.while_cond.cond_expr);
+            _free_ast_node(self->data.while_cond.scope);
             break;
         }
         case AST_CALL:
@@ -438,6 +472,17 @@ FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size
             }
             case AST_UNARY_OPERATOR: {
                 _ast_node_traverse_n(self->data.unary_op.expr, root, identation + 1, callback, reverse);
+                break;
+            }
+            case AST_IF: {
+                _ast_node_traverse_n(self->data.if_cond.cond_expr, root, identation + 1, callback, reverse);
+                _ast_node_traverse_n(self->data.if_cond.if_scope, root, identation + 1, callback, reverse);
+                _ast_node_traverse_n(self->data.if_cond.else_scope, root, identation + 1, callback, reverse);
+                break;
+            }
+            case AST_WHILE: {
+                _ast_node_traverse_n(self->data.while_cond.cond_expr, root, identation + 1, callback, reverse);
+                _ast_node_traverse_n(self->data.while_cond.scope, root, identation + 1, callback, reverse);
                 break;
             }
             case AST_CALL:
