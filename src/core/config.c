@@ -12,7 +12,7 @@
      Internals
    ==============- */
 
-static const FluffConfig global_default_config = {
+const FluffConfig global_default_config = {
     .alloc_fn = fluff_default_alloc, 
     .free_fn  = fluff_default_free, 
     .write_fn = fluff_default_write, 
