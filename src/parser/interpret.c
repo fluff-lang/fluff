@@ -55,7 +55,7 @@ FLUFF_PRIVATE_API FluffResult fluff_interpreter_read(FluffInterpreter * self, co
     Lexer lexer;
     _new_lexer(&lexer, self, source, n);
     _lexer_parse(&lexer);
-    // _lexer_dump(&lexer);
+    _lexer_dump(&lexer);
     
     Analyser analyser;
     _new_analyser(&analyser, &lexer);

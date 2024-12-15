@@ -772,6 +772,7 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
         case TOKEN_CATEGORY_FUNC_DECL:         return "function declaration";
         case TOKEN_CATEGORY_CLASS_DECL:        return "class declaration";
         case TOKEN_CATEGORY_END:               return "semicolon";
+        case TOKEN_CATEGORY_EOF:               return "eof";
         default:                               return "";
     }
 }
@@ -841,6 +842,7 @@ FLUFF_PRIVATE_API const char * _token_type_string(TokenType type) {
         ENUM_CASE(TOKEN_OBJECT)
         ENUM_CASE(TOKEN_ARRAY)
         ENUM_CASE(TOKEN_END)
+        ENUM_CASE(TOKEN_EOF)
         default: return "";
     } 
 }
@@ -890,6 +892,7 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
         case TOKEN_FUNC:  return TOKEN_CATEGORY_FUNC_DECL;
         case TOKEN_CLASS: return TOKEN_CATEGORY_CLASS_DECL;
         case TOKEN_END:   return TOKEN_CATEGORY_END;
+        case TOKEN_EOF:   return TOKEN_CATEGORY_EOF;
 
         default: return TOKEN_CATEGORY_NONE;
     } 

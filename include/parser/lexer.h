@@ -46,6 +46,8 @@ typedef enum TokenCategory {
     TOKEN_CATEGORY_FUNC_DECL, 
     TOKEN_CATEGORY_CLASS_DECL, 
     TOKEN_CATEGORY_END, 
+
+    TOKEN_CATEGORY_EOF, 
 } TokenCategory;
 
 FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category);
@@ -126,6 +128,7 @@ typedef enum TokenType {
     TOKEN_OBJECT, 
 
     TOKEN_END, 
+    TOKEN_EOF, 
 } TokenType;
 
 FLUFF_PRIVATE_API const char *  _token_type_string(TokenType type);
