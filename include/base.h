@@ -45,17 +45,22 @@
 #   endif
 #endif
 
-#ifdef FLUFF_IMPLEMENTATION
-#    define FLUFF_PRIVATE_API FLUFF_API
-#else
-#    define FLUFF_PRIVATE_API FLUFF_API __attribute__((error("call to private api function")))
-#endif
-
-#if 1
+#if defined(__GNUC__) || defined(__clang__)
+#    ifndef FLUFF_IMPLEMENTATION
+#        define FLUFF_PRIVATE_API FLUFF_API __attribute__((error("call to private api function")))
+#    else
+#        define FLUFF_PRIVATE_API FLUFF_API
+#    endif
 #    define FLUFF_CONSTEXPR    static inline __attribute__((always_inline, unused))
 #    define FLUFF_CONSTEXPR_V  static __attribute__((unused))
-#    define FLUFF_THREAD_LOCAL _Thread_local
+#else
+#    define FLUFF_PRIVATE_API FLUFF_API
+#    define FLUFF_CONSTEXPR
+#    define FLUFF_CONSTEXPR_V
 #endif
+
+#define FLUFF_THREAD_LOCAL   _Thread_local
+#define FLUFF_ATOMIC(__type) _Atomic(__type)
 
 #define FLUFF_ERROR_RETURN __attribute__((warn_unused_result))
 

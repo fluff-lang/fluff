@@ -12,7 +12,7 @@
      Internals
    ==============- */
 
-const FluffConfig global_default_config = {
+static const FluffConfig global_default_config = {
     .alloc_fn = fluff_default_alloc, 
     .free_fn  = fluff_default_free, 
     .write_fn = fluff_default_write, 
@@ -65,8 +65,8 @@ FLUFF_API FluffConfig fluff_get_config() {
     return global_config;
 }
 
-FLUFF_API const FluffConfig * fluff_get_default_config() {
-    return &global_default_config;
+FLUFF_API FluffConfig fluff_get_default_config() {
+    return global_default_config;
 }
 
 /* -=- Configuration callbacks -=- */

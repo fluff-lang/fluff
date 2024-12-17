@@ -42,47 +42,52 @@ FIXME: MISSING FUNCTIONALITY
      Version
    =============- */
 
+// This struct represents a fluff version.
 typedef struct FluffVersion {
     uint8_t major;
     uint8_t minor;
     uint8_t patch;
 } FluffVersion;
 
-// Checkes if 2 fluf versions are compatible.
-FLUFF_API FluffResult fluff_version_is_compatible(FluffVersion a, FluffVersion b) FLUFF_ERROR_RETURN;
+// Checkes if 2 fluff versions are compatible.
+FLUFF_API FluffResult fluff_version_is_compatible(FluffVersion a, FluffVersion b);
 
 /* -==================
      Configuration
    ==================- */
 
 // See 'FluffConfig'
-typedef void * (* FluffAllocFn)(void *, size_t);
-typedef void   (* FluffFreeFn)(void *);
-typedef void   (* FluffWriteFn)(const char * restrict text);
-typedef void   (* FluffErrorFn)(FluffEnum, const char * restrict text);
+typedef void   * (* FluffAllocFn)(void *, size_t);
+typedef void     (* FluffFreeFn)(void *);
+typedef void     (* FluffWriteFn)(const char * restrict text);
+typedef void     (* FluffErrorFn)(FluffEnum, const char * restrict text);
+typedef uint64_t (* FluffHashFn)(void *, size_t);
+typedef uint64_t (* FluffHashCombineFn)(uint64_t, uint64_t);
 
 // This struct determines multiple settings for the language.
 typedef struct FluffConfig {
-    FluffAllocFn alloc_fn; // Custom function for memory allocation.
-    FluffFreeFn  free_fn;  // Custom function for memory deallocation.
-    FluffWriteFn write_fn; // Custom function for writing to stdio.
-    FluffErrorFn error_fn; // Custom function for error handling.
+    FluffAllocFn       alloc_fn;        // Custom memory allocation function (default: malloc and realloc).
+    FluffFreeFn        free_fn;         // Custom memory deallocation function (default: free).
+    FluffWriteFn       write_fn;        // Custom CLI write function (default: printf).
+    FluffErrorFn       error_fn;        // Custom error handling function.
+    FluffHashFn        hash_fn;         // Custom function for hashing.
+    FluffHashCombineFn hash_combine_fn; // Custom function for hash combination.
 
-    bool strict_mode : 1; // Enables all strict compilation modes.
-    bool manual_mem  : 1; // Enables manual memory management. Only use it if you know what you're doing!
+    bool strict_mode; // Enables all strict compilation modes.
+    bool manual_mem;  // Enables manual memory management. Only use it if you know what you're doing!
 } FluffConfig;
 
-// Initializes fluf. If 'cfg' is NULL then the default configuration will be used instead.
+// Initializes fluff. If 'cfg' is NULL then the default configuration will be used instead.
 FLUFF_API FluffResult fluff_init(FluffConfig * cfg, FluffVersion version) FLUFF_ERROR_RETURN;
 
-// Closes fluf.
+// Closes fluff.
 FLUFF_API void fluff_close();
 
-// Obtains the fluf current configuration.
+// Obtains the fluff current configuration.
 FLUFF_API FluffConfig fluff_get_config();
 
-// Obtains the fluf default configuration
-FLUFF_API const FluffConfig * fluff_get_default_config();
+// Obtains the fluff default configuration
+FLUFF_API FluffConfig fluff_get_default_config();
 
 // Creates a configuration preset given program arguments.
 FLUFF_API FluffConfig fluff_make_config_by_args(int argc, const char ** argv);

@@ -12,6 +12,7 @@
      Instance
    =============- */
 
+// This struct represents an instance.
 typedef struct FluffInstance {
     
 } FluffInstance;

@@ -14,7 +14,7 @@
 
 // This represents a dynamically allocated string.
 typedef struct FluffString {
-    // NOTE: in fluf, indices can be negative, meaning we have 2 extra
+    // NOTE: in fluff, indices can be negative, meaning we have 2 extra
     //       bits of information on each string. We are going to use those
     //       extra bits later on.
     int    type     : 2;

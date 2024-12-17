@@ -8,7 +8,7 @@ int main(int argc, const char * argv[]) {
 
     FluffConfig cfg = fluff_make_config_by_args(argc - 1, argv + 1);
     if (fluff_init(&cfg, FLUFF_CURRENT_VERSION) == FLUFF_FAILURE) {
-        fluff_error(FLUFF_RUNTIME_ERROR, "unmatched fluf versions");
+        fluff_error(FLUFF_RUNTIME_ERROR, "unmatched fluff versions");
         return -1;
     }
     
