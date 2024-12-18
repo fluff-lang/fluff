@@ -109,7 +109,7 @@ FLUFF_CONSTEXPR TokenType label_match(Token * token, const char * str, size_t n)
         keywords by order of size:
             2 = or, as, is, in, if
             3 = and, not, let, for, int
-            4 = func, self, true, null, else, bool
+            4 = func, self, true, null, else, void, bool
             5 = const, class, false, while, break, float, array, super
             6 = string, object, return
             8 = continue
@@ -197,6 +197,11 @@ FLUFF_CONSTEXPR TokenType label_match(Token * token, const char * str, size_t n)
                 case 'n': {
                     if (str[1] == 'u' && str[2] == 'l' && str[3] == 'l')
                         return TOKEN_NULL;
+                    break;
+                }
+                case 'v': {
+                    if (str[1] == 'o' && str[2] == 'i' && str[3] == 'd')
+                        return TOKEN_VOID;
                     break;
                 }
                 default: break;
@@ -771,6 +776,8 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
         case TOKEN_CATEGORY_DECL:              return "declaration";
         case TOKEN_CATEGORY_FUNC_DECL:         return "function declaration";
         case TOKEN_CATEGORY_CLASS_DECL:        return "class declaration";
+        case TOKEN_CATEGORY_CONTROL_KEYWORD:   return "keyword";
+        case TOKEN_CATEGORY_TYPE_KEYWORD:      return "keyword";
         case TOKEN_CATEGORY_END:               return "semicolon";
         case TOKEN_CATEGORY_EOF:               return "eof";
         default:                               return "";
@@ -835,6 +842,7 @@ FLUFF_PRIVATE_API const char * _token_type_string(TokenType type) {
         ENUM_CASE(TOKEN_CONST)
         ENUM_CASE(TOKEN_FUNC)
         ENUM_CASE(TOKEN_CLASS)
+        ENUM_CASE(TOKEN_VOID)
         ENUM_CASE(TOKEN_BOOL)
         ENUM_CASE(TOKEN_INT)
         ENUM_CASE(TOKEN_FLOAT)
@@ -855,8 +863,11 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
         case TOKEN_BOOL_LITERAL: 
             return TOKEN_CATEGORY_LITERAL;
 
-        case TOKEN_BOOL:  case TOKEN_INT:    case TOKEN_FLOAT: case TOKEN_STRING: 
-        case TOKEN_ARRAY: case TOKEN_OBJECT: case TOKEN_LABEL_LITERAL: 
+        case TOKEN_VOID:   case TOKEN_BOOL:  case TOKEN_INT:    case TOKEN_FLOAT:
+        case TOKEN_STRING: case TOKEN_ARRAY: case TOKEN_OBJECT:
+            return TOKEN_CATEGORY_TYPE_KEYWORD;
+
+        case TOKEN_LABEL_LITERAL: 
             return TOKEN_CATEGORY_LABEL;
 
         case TOKEN_LPAREN:   return TOKEN_CATEGORY_LPAREN;
@@ -888,6 +899,9 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
 
         case TOKEN_LET: case TOKEN_CONST:
             return TOKEN_CATEGORY_DECL;
+
+        case TOKEN_BREAK: case TOKEN_CONTINUE: case TOKEN_RETURN:
+            return TOKEN_CATEGORY_CONTROL_KEYWORD;
 
         case TOKEN_FUNC:  return TOKEN_CATEGORY_FUNC_DECL;
         case TOKEN_CLASS: return TOKEN_CATEGORY_CLASS_DECL;

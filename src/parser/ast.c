@@ -32,6 +32,7 @@ FLUFF_CONSTEXPR const char * _ast_node_type_get_name(ASTNodeType type) {
         case AST_DECLARATION:    return "DECLARATION";
         case AST_FUNCTION:       return "FUNCTION";
         case AST_CLASS:          return "CLASS";
+        case AST_TYPE:           return "TYPE";
         default:                 return "UNKNOWN";
     }
 }
@@ -131,6 +132,7 @@ FLUFF_CONSTEXPR void _ast_node_dump_callback(ASTNode * self, ASTNode * root, siz
             printf(" %f", self->data.float_literal);
             break;
         }
+        case AST_TYPE:
         case AST_STRING_LITERAL: {
             printf(" '%s'", self->data.string_literal.data);
             break;
@@ -505,6 +507,7 @@ FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size
             }
             case AST_DECLARATION: {
                 _ast_node_traverse_n(self->data.decl.expr, root, identation + 1, callback, reverse);
+                _ast_node_traverse_n(self->data.decl.type, root, identation + 1, callback, reverse);
                 break;
             }
             default: break;

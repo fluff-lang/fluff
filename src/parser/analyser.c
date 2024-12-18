@@ -101,8 +101,8 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 // TODO: make ErrorPool class for supporting multiple errors
 #ifdef FLUFF_DEBUG
 #define _analyser_error_print(__fmt, ...)\
-        fluff_error_fmt(FLUFF_COMPILE_ERROR, "[%s:%d]:\n\t->%s:%zu:%zu: " __fmt, \
-            __FILE__, __LINE__, self->lexer->interpret->path, \
+        fluff_error_fmt(FLUFF_COMPILE_ERROR, "[at %s:%s():%d]:\n\t-> %s:%zu:%zu: " __fmt, \
+            __FILE__, __func__, __LINE__, self->lexer->interpret->path, \
             self->position.line + 1, self->position.column + 1, ##__VA_ARGS__\
         )
 #else
@@ -200,7 +200,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_scope(Analyser * self) {
     AnalyserState prev_state = self->state;
     ++self->state.call_depth;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_SCOPE, self->token.start);
+    ASTNode * node = _new_ast_node(self->ast, AST_SCOPE, self->position);
     self->state.last_scope = node;
     while (_analyser_is_within_bounds(self)) {
         if (self->token.type == self->state.expect) break;
@@ -218,7 +218,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_if(Analyser * self) {
     ++self->state.call_depth;
     self->state.last_scope = NULL;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_IF, self->token.start);
+    ASTNode * node = _new_ast_node(self->ast, AST_IF, self->position);
     _analyser_consume(self, 1);
     node->data.if_cond.cond_expr = _analyser_read_expr(self, TOKEN_LBRACE);
 
@@ -244,7 +244,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_while(Analyser * self) {
     ++self->state.call_depth;
     self->state.last_scope = NULL;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_WHILE, self->token.start);
+    ASTNode * node = _new_ast_node(self->ast, AST_WHILE, self->position);
     _analyser_consume(self, 1);
     node->data.while_cond.cond_expr = _analyser_read_expr(self, TOKEN_LBRACE);
 
@@ -259,11 +259,17 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_while(Analyser * self) {
 FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self) {
     AnalyserState prev_state = self->state;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_DECLARATION, self->token.start);
+    ASTNode * node = _new_ast_node(self->ast, AST_DECLARATION, self->position);
     node->data.decl.is_constant = (self->token.type == TOKEN_CONST);
     _analyser_consume(self, 1);
     _analyser_expect(self->index, TOKEN_CATEGORY_LABEL);
-    node->data.decl.expr = _analyser_read_expr(self, TOKEN_END);
+
+    if (_analyser_peek(self, 1).type == TOKEN_END)
+        _analyser_error("cannot declare a variable without implying or specifying it's type");
+
+    self->state.last_scope = node;
+    self->state.in_decl    = (_analyser_peek(self, 1).type == TOKEN_COLON);
+    node->data.decl.expr   = _analyser_read_expr(self, TOKEN_END);
 
     self->state = prev_state;
     return node;
@@ -275,6 +281,71 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self) {
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self) {
     return NULL;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self) {
+    AnalyserState prev_state = self->state;
+
+    // FIXME: append to a string instead of this
+    char   buf[128] = { 0 };
+    size_t size = 0;
+    while (!_analyser_is_expr_end(self)) {
+        if (self->token.type == TOKEN_END || self->token.type == TOKEN_EQUAL) {
+            if (size == 0) _analyser_error("missing type");
+            break;
+        }
+        if (size >= 127) _analyser_error("mangled type too large");
+        switch (self->token.type) {
+            case TOKEN_VOID:
+                { buf[size++] = 'v'; break; }
+            case TOKEN_BOOL:
+                { buf[size++] = 'b'; break; }
+            case TOKEN_INT:
+                { buf[size++] = 'i'; break; }
+            case TOKEN_FLOAT:
+                { buf[size++] = 'f'; break; }
+            case TOKEN_STRING:
+                { buf[size++] = 's'; break; }
+            case TOKEN_OBJECT:
+                { buf[size++] = 'o'; break; }
+            case TOKEN_LABEL_LITERAL: {
+                buf[size++] = 'C';
+                size_t len = self->token.length;
+                while (len != 0) {
+                    buf[size++] = (len % 10) + '0';
+                    len /= 10;
+                }
+                len = self->token.length;
+                while (len != 0) {
+                    buf[size++] = self->lexer->str[self->token.start.index + self->token.length - len];
+                    --len;
+                }
+                break;
+            }
+            case TOKEN_LBRACKET: {
+                _analyser_consume(self, 1);
+                _analyser_expect(self->index, TOKEN_CATEGORY_RBRACKET);
+                if (size == 0) {
+                    buf[size++] = 'N';
+                    break;
+                }
+                memmove(buf + 1, buf, size++);
+                buf[0] = 'A';
+                break;
+            }
+            default: _analyser_error("expected type, got %s '%.*s'", 
+                _token_category_string(_token_type_get_category(self->token.type)), 
+                TOKEN_FMT(self->index)
+            );
+        }
+        _analyser_consume(self, 1);
+    }
+
+    ASTNode * node = _new_ast_node_string_n(self->ast, buf, size, self->position);
+    node->type = AST_TYPE;
+
+    self->state = prev_state;
+    return node;
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr(Analyser * self, TokenType expect) {
@@ -292,9 +363,11 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
     if (!_analyser_is_within_bounds(self))
         _analyser_error("expected expression, got EOF");
 
-    //printf("token %zu\n", self->index);
     AnalyserState prev_state = self->state;
     ++self->state.call_depth;
+
+    self->state.in_decl    = false;
+    self->state.last_scope = NULL;
 
     TokenCategory category = _token_type_get_category(self->token.type);
     ASTNode * lhs = NULL;
@@ -325,13 +398,20 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             if (!node) _analyser_error("pratt parser returned null");
             lhs = _new_ast_node_unary_operator(self->ast, 
                 token_info[op_type].unary_op, 
-                node, self->token.start
+                node, self->position
             );
             break;
         }
         default: _analyser_error("expected expression, got %s '%.*s'", 
             _token_category_string(category), TOKEN_FMT(self->index)
         );
+    }
+
+    if (prev_state.in_decl && prev_state.last_scope->type == AST_DECLARATION) {
+        _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON);
+        _analyser_consume(self, 2);
+        prev_state.last_scope->data.decl.type = _analyser_read_type(self);
+        _analyser_rewind(self, 1);
     }
 
     while (!_analyser_is_expr_end(self)) {
@@ -343,9 +423,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         if (type == self->state.expect) break;
 
         int prec = token_info[type].infix_prec;
-        //printf("prec %d vs %d on token %zu\n", prec, prec_limit, self->index + 1);
         if (prec < prec_limit) break;
-        //printf("condition met at token %zu\n", self->index + 1);
 
         if (type == TOKEN_LPAREN) {
             _analyser_consume(self, 1);
@@ -368,7 +446,6 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             lhs = _new_ast_node_operator(self->ast, token_info[type].op, lhs, rhs, sect);
     }
 
-    //printf("returned\n");
     self->state = prev_state;
     return lhs;
 }

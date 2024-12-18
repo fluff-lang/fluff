@@ -142,6 +142,7 @@ typedef struct ASTWhileData {
 
 typedef struct ASTDeclData {
     bool is_constant;
+    ASTNode * type;
     ASTNode * expr;
 } ASTDeclData;
 
@@ -157,11 +158,6 @@ typedef enum ASTTypeDataType {
 } ASTTypeDataType;
 
 typedef struct ASTTypeData ASTTypeData;
-
-typedef struct ASTTypeData {
-    ASTTypeDataType type;
-    ASTTypeData   * next;
-} ASTTypeData;
 
 typedef union ASTNodeData {
     FluffBool   bool_literal;
