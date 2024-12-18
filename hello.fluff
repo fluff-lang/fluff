@@ -1,3 +1,4 @@
-if true {
-    
-} else 1;
+let a = 0;
+while a < 5 {
+    a = a + 1;
+}

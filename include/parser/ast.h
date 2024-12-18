@@ -140,6 +140,29 @@ typedef struct ASTWhileData {
     ASTNode * scope;
 } ASTWhileData;
 
+typedef struct ASTDeclData {
+    bool is_constant;
+    ASTNode * expr;
+} ASTDeclData;
+
+typedef enum ASTTypeDataType {
+    AST_TYPE_VOID, 
+    AST_TYPE_BOOL, 
+    AST_TYPE_INT, 
+    AST_TYPE_FLOAT, 
+    AST_TYPE_STRING, 
+    AST_TYPE_OBJECT, 
+    AST_TYPE_FUNC, 
+    AST_TYPE_ARRAY, 
+} ASTTypeDataType;
+
+typedef struct ASTTypeData ASTTypeData;
+
+typedef struct ASTTypeData {
+    ASTTypeDataType type;
+    ASTTypeData   * next;
+} ASTTypeData;
+
 typedef union ASTNodeData {
     FluffBool   bool_literal;
     FluffInt    int_literal;
@@ -154,6 +177,8 @@ typedef union ASTNodeData {
     ASTIfData    if_cond;
     ASTForData   for_cond;
     ASTWhileData while_cond;
+
+    ASTDeclData decl;
 } ASTNodeData;
 
 typedef struct ASTNode {
@@ -204,10 +229,10 @@ FLUFF_PRIVATE_API void _ast_node_ref(ASTNode * self);
 // Subtracts one from a node's reference count, and if it reaches 0, free's the node.
 FLUFF_PRIVATE_API void _ast_node_deref(ASTNode * self);
 
-typedef void (* FluffASTNodeTraverseCallback)(ASTNode *, ASTNode *, size_t);
+typedef void (* ASTNodeTraverseCallback)(ASTNode *, ASTNode *, size_t);
 
-FLUFF_PRIVATE_API void _ast_node_traverse(ASTNode * self, FluffASTNodeTraverseCallback callback, bool reverse);
-FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size_t identation, FluffASTNodeTraverseCallback callback, bool reverse);
+FLUFF_PRIVATE_API void _ast_node_traverse(ASTNode * self, ASTNodeTraverseCallback callback, bool reverse);
+FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size_t identation, ASTNodeTraverseCallback callback, bool reverse);
 FLUFF_PRIVATE_API bool _ast_node_compare(const ASTNode * lhs, const ASTNode * rhs);
 
 FLUFF_PRIVATE_API void _ast_node_solve(ASTNode * self);

@@ -29,6 +29,7 @@ FLUFF_CONSTEXPR const char * _ast_node_type_get_name(ASTNodeType type) {
         case AST_IF:             return "IF";
         case AST_FOR:            return "FOR";
         case AST_WHILE:          return "WHILE";
+        case AST_DECLARATION:    return "DECLARATION";
         case AST_FUNCTION:       return "FUNCTION";
         case AST_CLASS:          return "CLASS";
         default:                 return "UNKNOWN";
@@ -156,11 +157,14 @@ FLUFF_CONSTEXPR void _ast_node_dump_callback(ASTNode * self, ASTNode * root, siz
             break;
         }
         case AST_FUNCTION: {
-            printf("func placeholder");
+            break;
+        }
+        case AST_DECLARATION: {
+            if (self->data.decl.is_constant) printf(" (immutable)");
+            else                             printf(" (mutable)");
             break;
         }
         case AST_CLASS: {
-            printf("class placeholder");
             break;
         }
         default: break;
@@ -457,11 +461,11 @@ FLUFF_PRIVATE_API ASTNode * _ast_node_suite_push_n(ASTNode * self, ASTNode * nod
     return node;
 }
 
-FLUFF_PRIVATE_API void _ast_node_traverse(ASTNode * self, FluffASTNodeTraverseCallback callback, bool reverse) {
+FLUFF_PRIVATE_API void _ast_node_traverse(ASTNode * self, ASTNodeTraverseCallback callback, bool reverse) {
     _ast_node_traverse_n(self, self, 0, callback, reverse);
 }
 
-FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size_t identation, FluffASTNodeTraverseCallback callback, bool reverse) {
+FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size_t identation, ASTNodeTraverseCallback callback, bool reverse) {
     if (!reverse) callback(self, root, identation);
     if (self) {
         switch (self->type) {
@@ -497,6 +501,10 @@ FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size
                     _ast_node_traverse_n(node, root, identation + 1, callback, reverse);
                     node = node->next;
                 }
+                break;
+            }
+            case AST_DECLARATION: {
+                _ast_node_traverse_n(self->data.decl.expr, root, identation + 1, callback, reverse);
                 break;
             }
             default: break;
