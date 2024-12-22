@@ -95,23 +95,27 @@ FLUFF_PRIVATE_API void _new_analyser(Analyser * self, Lexer * lexer) {
 }
 
 FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
+    _free_ast(self->ast);
     FLUFF_CLEANUP(self);
 }
 
 // TODO: make ErrorPool class for supporting multiple errors
 #ifdef FLUFF_DEBUG
-#define _analyser_error_print(__fmt, ...)\
+#define _analyser_error_print_d(__line, __func, __fmt, ...)\
         fluff_error_fmt(FLUFF_COMPILE_ERROR, "[at %s:%s():%d]:\n\t-> %s:%zu:%zu: " __fmt, \
-            __FILE__, __func__, __LINE__, self->lexer->interpret->path, \
+            __FILE__, __func, __line, self->lexer->interpret->path, \
             self->position.line + 1, self->position.column + 1, ##__VA_ARGS__\
         )
 #else
-#define _analyser_error_print(__fmt, ...)\
+#define _analyser_error_print_d(__line, __func, __fmt, ...)\
         fluff_error_fmt(FLUFF_COMPILE_ERROR, "%s:%zu:%zu: " __fmt, \
             self->lexer->interpret->path, \
             self->position.line + 1, self->position.column + 1, ##__VA_ARGS__\
         )
 #endif
+
+#define _analyser_error_print(...)\
+        _analyser_error_print_d(__LINE__, __func__, __VA_ARGS__)
 
 #define _analyser_error(__fmt, ...)\
         _analyser_error_print(__fmt, ##__VA_ARGS__)
@@ -121,7 +125,7 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
         _analyser_error_print(__fmt, ##__VA_ARGS__)
 #define _analyser_expect(__idx, ...) {\
             const TokenCategory __c[] = { __VA_ARGS__ };\
-            _analyser_expect_n(self, __idx, __c, FLUFF_LENOF(__c));\
+            _analyser_expect_n(self, __idx, __c, FLUFF_LENOF(__c), __LINE__, __func__);\
         }
 
 #define TOKEN_FMT(__index)\
@@ -283,66 +287,63 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self) {
     return NULL;
 }
 
-FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self) {
+FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expect) {
     AnalyserState prev_state = self->state;
 
-    // FIXME: append to a string instead of this
-    char   buf[128] = { 0 };
-    size_t size = 0;
-    while (!_analyser_is_expr_end(self)) {
-        if (self->token.type == TOKEN_END || self->token.type == TOKEN_EQUAL) {
-            if (size == 0) _analyser_error("missing type");
+    ASTNode * node = _new_ast_node(self->ast, AST_TYPE, self->position);
+    if (self->token.type == TOKEN_END || self->token.type == expect) {
+        if (node->node_count == 0) _analyser_error("missing type");
+        self->state = prev_state;
+        return node;
+    }
+    switch (self->token.type) {
+        case TOKEN_VOID: {
+            node->data.type = AST_TYPE_VOID;
             break;
         }
-        if (size >= 127) _analyser_error("mangled type too large");
-        switch (self->token.type) {
-            case TOKEN_VOID:
-                { buf[size++] = 'v'; break; }
-            case TOKEN_BOOL:
-                { buf[size++] = 'b'; break; }
-            case TOKEN_INT:
-                { buf[size++] = 'i'; break; }
-            case TOKEN_FLOAT:
-                { buf[size++] = 'f'; break; }
-            case TOKEN_STRING:
-                { buf[size++] = 's'; break; }
-            case TOKEN_OBJECT:
-                { buf[size++] = 'o'; break; }
-            case TOKEN_LABEL_LITERAL: {
-                buf[size++] = 'C';
-                size_t len = self->token.length;
-                while (len != 0) {
-                    buf[size++] = (len % 10) + '0';
-                    len /= 10;
-                }
-                len = self->token.length;
-                while (len != 0) {
-                    buf[size++] = self->lexer->str[self->token.start.index + self->token.length - len];
-                    --len;
-                }
-                break;
-            }
-            case TOKEN_LBRACKET: {
-                _analyser_consume(self, 1);
-                _analyser_expect(self->index, TOKEN_CATEGORY_RBRACKET);
-                if (size == 0) {
-                    buf[size++] = 'N';
-                    break;
-                }
-                memmove(buf + 1, buf, size++);
-                buf[0] = 'A';
-                break;
-            }
-            default: _analyser_error("expected type, got %s '%.*s'", 
-                _token_category_string(_token_type_get_category(self->token.type)), 
-                TOKEN_FMT(self->index)
-            );
+        case TOKEN_BOOL: {
+            node->data.type = AST_TYPE_BOOL;
+            break;
         }
-        _analyser_consume(self, 1);
+        case TOKEN_INT: {
+            node->data.type = AST_TYPE_INT;
+            break;
+        }
+        case TOKEN_FLOAT: {
+            node->data.type = AST_TYPE_FLOAT;
+            break;
+        }
+        case TOKEN_STRING: {
+            node->data.type = AST_TYPE_STRING;
+            break;
+        }
+        case TOKEN_OBJECT: {
+            node->data.type = AST_TYPE_OBJECT;
+            break;
+        }
+        case TOKEN_LABEL_LITERAL: {
+            node->data.type = AST_TYPE_CLASS;
+            node->next = _new_ast_node_string_n(self->ast, 
+                &self->lexer->str[self->token.start.index], self->token.length, 
+                self->position
+            );
+            break;
+        }
+        case TOKEN_LBRACKET: {
+            // TODO: array types
+            break;
+        }
+        case TOKEN_FUNC: {
+            // TODO: function types
+            break;
+        }
+        case TOKEN_RPAREN: break;
+        default: _analyser_error("expected type, got %s '%.*s'", 
+            _token_category_string(_token_type_get_category(self->token.type)), 
+            TOKEN_FMT(self->index)
+        );
     }
-
-    ASTNode * node = _new_ast_node_string_n(self->ast, buf, size, self->position);
-    node->type = AST_TYPE;
+    _analyser_consume(self, 1);
 
     self->state = prev_state;
     return node;
@@ -410,7 +411,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
     if (prev_state.in_decl && prev_state.last_scope->type == AST_DECLARATION) {
         _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON);
         _analyser_consume(self, 2);
-        prev_state.last_scope->data.decl.type = _analyser_read_type(self);
+        prev_state.last_scope->data.decl.type = _analyser_read_type(self, TOKEN_EQUAL);
         _analyser_rewind(self, 1);
     }
 
@@ -467,7 +468,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * 
     return top;
 }
 
-FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, size_t idx, const TokenCategory * categories, size_t count) {
+FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, size_t idx, const TokenCategory * categories, size_t count, int line, const char * func) {
     TokenCategory category = TOKEN_CATEGORY_EOF;
 
     if (idx < self->lexer->token_count)
@@ -499,9 +500,9 @@ FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, size_t idx, const Tok
         j += lens[i];
     }
     if (idx >= self->lexer->token_count)
-        _analyser_error("expected %.*s; got EOF", (int)len, buf);
+        _analyser_error_print_d(line, func, "expected %.*s; got EOF", (int)len, buf);
     else
-        _analyser_error("expected %.*s; got %s '%.*s'", 
+        _analyser_error_print_d(line, func, "expected %.*s; got %s '%.*s'", 
             (int)len, buf, _token_category_string(category), TOKEN_FMT(idx)
         );
     // TODO: this looks like garbage but works perfectly so maybe fix it idk

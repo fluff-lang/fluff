@@ -146,18 +146,17 @@ typedef struct ASTDeclData {
     ASTNode * expr;
 } ASTDeclData;
 
-typedef enum ASTTypeDataType {
+typedef enum ASTTypeData {
     AST_TYPE_VOID, 
     AST_TYPE_BOOL, 
     AST_TYPE_INT, 
     AST_TYPE_FLOAT, 
     AST_TYPE_STRING, 
     AST_TYPE_OBJECT, 
+    AST_TYPE_CLASS, 
     AST_TYPE_FUNC, 
     AST_TYPE_ARRAY, 
-} ASTTypeDataType;
-
-typedef struct ASTTypeData ASTTypeData;
+} ASTTypeData;
 
 typedef union ASTNodeData {
     FluffBool   bool_literal;
@@ -175,6 +174,8 @@ typedef union ASTNodeData {
     ASTWhileData while_cond;
 
     ASTDeclData decl;
+
+    ASTTypeData type;
 } ASTNodeData;
 
 typedef struct ASTNode {

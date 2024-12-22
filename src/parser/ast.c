@@ -132,7 +132,6 @@ FLUFF_CONSTEXPR void _ast_node_dump_callback(ASTNode * self, ASTNode * root, siz
             printf(" %f", self->data.float_literal);
             break;
         }
-        case AST_TYPE:
         case AST_STRING_LITERAL: {
             printf(" '%s'", self->data.string_literal.data);
             break;
@@ -167,6 +166,29 @@ FLUFF_CONSTEXPR void _ast_node_dump_callback(ASTNode * self, ASTNode * root, siz
             break;
         }
         case AST_CLASS: {
+            break;
+        }
+        case AST_TYPE: {
+            switch (self->data.type) {
+                case AST_TYPE_VOID:
+                    { printf(" void"); break; }
+                case AST_TYPE_BOOL:
+                    { printf(" bool"); break; }
+                case AST_TYPE_INT:
+                    { printf(" int"); break; }
+                case AST_TYPE_FLOAT:
+                    { printf(" float"); break; }
+                case AST_TYPE_STRING:
+                    { printf(" string"); break; }
+                case AST_TYPE_OBJECT:
+                    { printf(" object"); break; }
+                case AST_TYPE_CLASS:
+                    { printf(" class"); break; }
+                case AST_TYPE_FUNC:
+                    { printf(" func"); break; }
+                case AST_TYPE_ARRAY:
+                    { printf(" array"); break; }
+            }
             break;
         }
         default: break;
@@ -319,6 +341,13 @@ FLUFF_CONSTEXPR void _ast_node_solve_callback(ASTNode * self, ASTNode * root, si
     putchar('\n');
 }
 
+FLUFF_CONSTEXPR void _ast_node_free_callback(ASTNode * self, ASTNode * root, size_t identation) {
+    if (!self) return;
+    if (&self->ast->root == self) return; // Avoiding free if the value is the root
+    FLUFF_CLEANUP(self);
+    fluff_free(self);
+}
+
 /* -============
      ASTNode
    ============- */
@@ -330,6 +359,7 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node(AST * ast, ASTNodeType type, TextSect 
     self->loc  = loc;
     ++self->loc.line;
     ++self->loc.column;
+    printf("allocated %p\n", self);
     return self;
 }
 
@@ -355,7 +385,7 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_float(AST * ast, FluffFloat v, TextSec
 }
 
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_string(AST * ast, const char * str, TextSect loc) {
-    return _new_ast_node_string_n(ast, str, strlen(str), loc);
+    return _new_ast_node_string_n(ast, str, (str ? strlen(str) : 0), loc);
 }
 
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_string_n(AST * ast, const char * str, size_t len, TextSect loc) {
@@ -405,7 +435,6 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_
 
 FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self) {
     if (!self) return;
-    if (&self->ast->root == self) return; // Avoiding free if the value is the root
     switch (self->type) {
         case AST_OPERATOR: {
             _free_ast_node(self->data.op.lhs);
@@ -438,10 +467,21 @@ FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self) {
             }
             break;
         }
+        case AST_DECLARATION: {
+            _free_ast_node(self->data.decl.expr);
+            _free_ast_node(self->data.decl.type);
+            break;
+        }
+        case AST_TYPE: {
+            _free_ast_node(self->next);
+            break;
+        }
         default: break;
     }
+    if (&self->ast->root == self) return; // Avoiding free if the value is the root
     FLUFF_CLEANUP(self);
     fluff_free(self);
+    printf("freed %p\n", self);
 }
 
 FLUFF_PRIVATE_API ASTNode * _ast_node_suite_push(ASTNode * self, ASTNode * node) {
@@ -508,6 +548,10 @@ FLUFF_PRIVATE_API void _ast_node_traverse_n(ASTNode * self, ASTNode * root, size
             case AST_DECLARATION: {
                 _ast_node_traverse_n(self->data.decl.expr, root, identation + 1, callback, reverse);
                 _ast_node_traverse_n(self->data.decl.type, root, identation + 1, callback, reverse);
+                break;
+            }
+            case AST_TYPE: {
+                _ast_node_traverse_n(self->next, root, identation + 1, callback, reverse);
                 break;
             }
             default: break;

@@ -20,7 +20,6 @@ FLUFF_API FluffInterpreter * fluff_new_interpreter() {
 }
 
 FLUFF_API void fluff_free_interpreter(FluffInterpreter * self) {
-    _free_ast(&self->ast);
     fluff_free(self);
 }
 
