@@ -12,17 +12,18 @@
      Internals
    ==============- */
 
-const FluffConfig global_default_config = {
-    .alloc_fn = fluff_default_alloc, 
-    .free_fn  = fluff_default_free, 
-    .write_fn = fluff_default_write, 
-    .error_fn = fluff_default_error, 
+#define DEFAULT_CONFIG (FluffConfig){\
+            .alloc_fn = fluff_default_alloc, \
+            .free_fn  = fluff_default_free, \
+            .write_fn = fluff_default_write, \
+            .error_fn = fluff_default_error, \
+            .strict_mode = false, \
+            .manual_mem  = false, \
+        };
 
-    .strict_mode = false, 
-    .manual_mem  = false, 
-};
+const FluffConfig global_default_config = DEFAULT_CONFIG;
 
-static FluffConfig global_config = global_default_config;
+static FluffConfig global_config = DEFAULT_CONFIG;
 
 /* -============
      Version
