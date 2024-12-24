@@ -28,7 +28,7 @@ FLUFF_CONSTEXPR_V ASTNode * _new_ast_node_from_token(Lexer * self, size_t i, AST
                 _lexer_token_string(self, i), _lexer_token_string_len(self, i), loc
             );
             if (type == TOKEN_LABEL_LITERAL) {
-                node->type = AST_LABEL_LITERAL;
+                node->type = AST_NODE_LABEL_LITERAL;
             }
             return node;
         }
@@ -38,15 +38,15 @@ FLUFF_CONSTEXPR_V ASTNode * _new_ast_node_from_token(Lexer * self, size_t i, AST
 }
 
 #define MAKE_INFO(arr, prec, uprec, assoc, name, uname)\
-        [TOKEN_##arr] = { prec, uprec, assoc, AST_OPERATOR_##name, AST_UOPERATOR_##uname }
+        [TOKEN_##arr] = { prec, uprec, assoc, AST_OPERATOR_##name, AST_OPERATOR_##uname }
 
 FLUFF_CONSTEXPR_V struct {
     int  infix_prec;
     int  prefix_prec;
     bool right_associative;
 
-    ASTOperatorDataType      op;
-    ASTUnaryOperatorDataType unary_op;
+    ASTOperatorType op;
+    ASTOperatorType unary_op;
 } token_info[] = {
     // NOTE: yes I copied half of these from C++ standard, how did you know
     MAKE_INFO(EQUAL,          18, 0,  true,  EQUAL,   NONE),
@@ -136,7 +136,7 @@ FLUFF_PRIVATE_API void _analyser_read(Analyser * self) {
     self->token        = * self->lexer->tokens;
     self->state.expect = TOKEN_EOF;
     ASTNode * node = _analyser_read_scope(self);
-    if (node) _ast_node_suite_push(&self->ast->root, node);
+    if (node) _ast_node_append_child(&self->ast->root, node);
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
@@ -194,7 +194,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
         if (!node) _analyser_error("ast node returned null");
 
         if (self->state.last_scope)
-            _ast_node_suite_push(self->state.last_scope, node);
+            _ast_node_append_child(self->state.last_scope, node);
     }
 
     return node;
@@ -204,7 +204,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_scope(Analyser * self) {
     AnalyserState prev_state = self->state;
     ++self->state.call_depth;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_SCOPE, self->position);
+    ASTNode * node = _new_ast_node(self->ast, AST_NODE_SCOPE, self->position);
     self->state.last_scope = node;
     while (_analyser_is_within_bounds(self)) {
         if (self->token.type == self->state.expect) break;
@@ -222,17 +222,17 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_if(Analyser * self) {
     ++self->state.call_depth;
     self->state.last_scope = NULL;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_IF, self->position);
+    ASTNode * node = _new_ast_node(self->ast, AST_NODE_IF, self->position);
     _analyser_consume(self, 1);
-    node->data.if_cond.cond_expr = _analyser_read_expr(self, TOKEN_LBRACE);
+    _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_LBRACE));
 
     _analyser_consume(self, 2);
     self->state.expect = TOKEN_RBRACE;
-    node->data.if_cond.if_scope = _analyser_read_scope(self);
+    _ast_node_append_child(node, _analyser_read_scope(self));
 
     if (_analyser_peek(self, 1).type == TOKEN_ELSE) {
         _analyser_consume(self, 2);
-        node->data.if_cond.else_scope = _analyser_read_token(self);
+        _ast_node_append_child(node, _analyser_read_token(self));
     }
     
     self->state = prev_state;
@@ -248,13 +248,13 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_while(Analyser * self) {
     ++self->state.call_depth;
     self->state.last_scope = NULL;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_WHILE, self->position);
+    ASTNode * node = _new_ast_node(self->ast, AST_NODE_WHILE, self->position);
     _analyser_consume(self, 1);
-    node->data.while_cond.cond_expr = _analyser_read_expr(self, TOKEN_LBRACE);
+    _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_LBRACE));
 
     _analyser_consume(self, 2);
     self->state.expect = TOKEN_RBRACE;
-    node->data.while_cond.scope = _analyser_read_scope(self);
+    _ast_node_append_child(node, _analyser_read_scope(self));
     
     self->state = prev_state;
     return node;
@@ -263,7 +263,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_while(Analyser * self) {
 FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self) {
     AnalyserState prev_state = self->state;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_DECLARATION, self->position);
+    ASTNode * node = _new_ast_node(self->ast, AST_NODE_DECLARATION, self->position);
     node->data.decl.is_constant = (self->token.type == TOKEN_CONST);
     _analyser_consume(self, 1);
     _analyser_expect(self->index, TOKEN_CATEGORY_LABEL);
@@ -273,7 +273,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self) {
 
     self->state.last_scope = node;
     self->state.in_decl    = (_analyser_peek(self, 1).type == TOKEN_COLON);
-    node->data.decl.expr   = _analyser_read_expr(self, TOKEN_END);
+    _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_END));
 
     self->state = prev_state;
     return node;
@@ -290,9 +290,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self) {
 FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expect) {
     AnalyserState prev_state = self->state;
 
-    ASTNode * node = _new_ast_node(self->ast, AST_TYPE, self->position);
+    ASTNode * node = _new_ast_node(self->ast, AST_NODE_TYPE, self->position);
     if (self->token.type == TOKEN_END || self->token.type == expect) {
-        if (node->node_count == 0) _analyser_error("missing type");
+        // FIXME: missing type error
+        // if (node->last_child == 0) _analyser_error("missing type");
         self->state = prev_state;
         return node;
     }
@@ -323,10 +324,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
         }
         case TOKEN_LABEL_LITERAL: {
             node->data.type = AST_TYPE_CLASS;
-            node->next = _new_ast_node_string_n(self->ast, 
+            _ast_node_append_child(node, _new_ast_node_string_n(self->ast, 
                 &self->lexer->str[self->token.start.index], self->token.length, 
                 self->position
-            );
+            ));
             break;
         }
         case TOKEN_LBRACKET: {
@@ -408,10 +409,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         );
     }
 
-    if (prev_state.in_decl && prev_state.last_scope->type == AST_DECLARATION) {
+    if (prev_state.in_decl && prev_state.last_scope->type == AST_NODE_DECLARATION) {
         _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON);
         _analyser_consume(self, 2);
-        prev_state.last_scope->data.decl.type = _analyser_read_type(self, TOKEN_EQUAL);
+        _ast_node_append_child(prev_state.last_scope, _analyser_read_type(self, TOKEN_EQUAL));
         _analyser_rewind(self, 1);
     }
 
@@ -459,7 +460,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * 
 
     if (_analyser_peek(self, 1).type != TOKEN_RPAREN) {
         self->state.in_call = true;
-        top->next           = _analyser_read_expr_pratt(self, 0);
+        _ast_node_append_child(top, _analyser_read_expr_pratt(self, 0));
     } else _analyser_consume(self, 1);
 
     top = _new_ast_node_call(top->ast, top, self->state.comma_count + 1, sect);
