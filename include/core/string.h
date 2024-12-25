@@ -50,21 +50,27 @@ FLUFF_API void fluff_string_clear(FluffString * self);
 
 // Concatenates two strings.
 FLUFF_API FluffString * fluff_string_concat(FluffString * lhs, const FluffString * rhs);
+FLUFF_API FluffString * fluff_string_concat_s(FluffString * lhs, const char * rh);
+FLUFF_API FluffString * fluff_string_concat_sn(FluffString * lhs, const char * rhs, size_t rhs_len);
 
 // Inserts a string inside another given [pos].
 FLUFF_API FluffString * fluff_string_insert(FluffString * lhs, size_t pos, const FluffString * rhs);
+FLUFF_API FluffString * fluff_string_insert_s(FluffString * lhs, size_t pos, const char * rhs);
+FLUFF_API FluffString * fluff_string_insert_sn(FluffString * lhs, size_t pos, const char * rhs, size_t rhs_len);
 
 // Repeats the text contained within string [count] times.
 FLUFF_API FluffString * fluff_string_repeat(FluffString * self, size_t count);
 
 // Compares two strings using the strcmp() method.
 FLUFF_API int fluff_string_compare(const FluffString * lhs, const FluffString * rhs);
-FLUFF_API int fluff_string_compare_c(const FluffString * lhs, const char * rhs);
+FLUFF_API int fluff_string_compare_s(const FluffString * lhs, const char * rhs);
+FLUFF_API int fluff_string_compare_sn(const FluffString * lhs, const char * rhs, size_t rhs_len);
 
 // Checkes if two strings are the exact same
-// HINT: this function is recommended over string_compare if the strings don't have the same size.
+// NOTE: this function is recommended over string_compare if the strings don't have the same size.
 FLUFF_API bool fluff_string_equal(const FluffString * lhs, const FluffString * rhs);
-FLUFF_API bool fluff_string_equal_c(const FluffString * lhs, const char * rhs);
+FLUFF_API bool fluff_string_equal_s(const FluffString * lhs, const char * rhs);
+FLUFF_API bool fluff_string_equal_sn(const FluffString * lhs, const char * rhs, size_t rhs_len);
 
 // Gives the amount of UTF-8 characters in the string given the current locale.
 FLUFF_API size_t fluff_string_count(const FluffString * self);

@@ -43,6 +43,7 @@ FLUFF_API FluffResult fluff_init(FluffConfig * cfg, FluffVersion version) {
     if (!fluff_version_is_compatible(version, FLUFF_CURRENT_VERSION))
         return FLUFF_FAILURE;
 
+    // Sets each callback if they were not binded yet
     if (!cfg) return FLUFF_OK;
     if (cfg->alloc_fn) global_config.alloc_fn = cfg->alloc_fn;
     if (cfg->free_fn)  global_config.free_fn  = cfg->free_fn;

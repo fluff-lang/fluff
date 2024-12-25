@@ -291,12 +291,15 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self) {
 FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expect) {
     AnalyserState prev_state = self->state;
 
+    bool had_error = false;
+
     ASTNode * node = _new_ast_node(self->ast, AST_NODE_TYPE, self->position);
     if (self->token.type == TOKEN_END) _analyser_error("missing type");
     if (self->token.type == expect) {
         self->state = prev_state;
         return node;
     }
+    // TODO: let the tokens decide between consuming at the end instead of just rewinding it
     switch (self->token.type) {
         case TOKEN_VOID: {
             node->data.type = AST_TYPE_VOID;
@@ -333,20 +336,47 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
         case TOKEN_LBRACKET: {
             _analyser_consume(self, 1);
             node->data.type = AST_TYPE_ARRAY;
-            _ast_node_append_child(node, _analyser_read_type(self, expect));
+            if (_analyser_peek(self, 1).type != TOKEN_RBRACKET)
+                _ast_node_append_child(node, _analyser_read_type(self, expect));
             _analyser_expect(self->index, TOKEN_CATEGORY_RBRACKET);
             break;
         }
         case TOKEN_FUNC: {
-            // TODO: function types
+            _analyser_consume(self, 1);
+            _analyser_expect(self->index, TOKEN_CATEGORY_LPAREN);
+            node->data.type = AST_TYPE_FUNC;
+            
+            self->state.in_call = true;
+            if (_analyser_peek(self, 1).type != TOKEN_RPAREN) {
+                while (_analyser_is_within_bounds(self)) {
+                    if (self->token.type == TOKEN_RPAREN || self->token.type == expect) break;
+                    _analyser_consume(self, 1);
+                    _ast_node_append_child(node, _analyser_read_type(self, expect));
+                }
+            } else _analyser_consume(self, 1);
+            self->state.in_call = false;
+            if (_analyser_peek(self, 1).type == TOKEN_ARROW) {
+                _analyser_consume(self, 2);
+                _ast_node_append_child(node, _analyser_read_type(self, expect));
+                _analyser_rewind(self, 1);
+            }
             break;
         }
-        case TOKEN_RPAREN: break;
-        default: _analyser_error("expected type, got %s '%.*s'", 
+        case TOKEN_RPAREN: {
+            had_error = (!self->state.in_call);
+            break;
+        }
+        default: {
+            had_error = true;
+            break;
+        }
+    }
+    if (had_error)
+        _analyser_error("expected type, got %s '%.*s'", 
             _token_category_string(_token_type_get_category(self->token.type)), 
             TOKEN_FMT(self->index)
         );
-    }
+
     _analyser_consume(self, 1);
 
     self->state = prev_state;
@@ -413,8 +443,13 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
     }
 
     if (prev_state.in_decl) {
-        _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON);
-        _analyser_consume(self, 2);
+        _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON, TOKEN_CATEGORY_RPAREN);
+        _analyser_consume(self, 1);
+        if (self->token.type == TOKEN_RPAREN && !prev_state.in_call)
+            _analyser_error("unexpected %s '%.*s' in type declaration", 
+                _token_category_string(_token_type_get_category(self->token.type)), TOKEN_FMT(self->index)
+            );
+        _analyser_consume(self, 1);
         self->extra_return = _analyser_read_type(self, TOKEN_EQUAL);
         _analyser_rewind(self, 1);
     }
