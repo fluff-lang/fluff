@@ -36,7 +36,7 @@ FLUFF_CONSTEXPR_V ASTNodeInfo node_info[] = {
     MAKE_INFO(AST_NODE_IF,             3) // TODO: this
     MAKE_INFO(AST_NODE_FOR,            4) // TODO: this
     MAKE_INFO(AST_NODE_WHILE,          2) // TODO: this
-    MAKE_INFO(AST_NODE_DECLARATION,    1) // TODO: relation this with scope
+    MAKE_INFO(AST_NODE_DECLARATION,    2) // TODO: relation this with scope
     MAKE_INFO(AST_NODE_FUNCTION,       0) // TODO: this
     MAKE_INFO(AST_NODE_CLASS,          0) // TODO: this
     MAKE_INFO(AST_NODE_TYPE,           0) // TODO: this
@@ -247,10 +247,8 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_literal(AST * ast, const char * str, s
 
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorType op, ASTNode * lhs, ASTNode * rhs, TextSect loc) {
     ASTNode * self = _new_ast_node(ast, AST_NODE_OPERATOR, loc);
-    if (lhs) {
-        lhs->sibling = rhs;
-        _ast_node_append_child(self, lhs);
-    }
+    _ast_node_append_child(self, lhs);
+    _ast_node_append_child(self, rhs);
     return self;
 }
 
@@ -278,22 +276,23 @@ FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self) {
 }
 
 FLUFF_PRIVATE_API ASTNode * _ast_node_append_child(ASTNode * self, ASTNode * node) {
+    // TODO: handling node if it already has siblings
+    if (!node) return NULL;
+
     const size_t max = node_info[self->type].max_children;
     if (max != 0 && self->last_child && self->last_child->index == max - 1)
         // FIXME: proper error handling for this function
         return NULL;
 
+    node->parent = self;
+
     size_t last_index = 0;
     if (self->last_child) {
-        last_index                = self->last_child->index;
+        last_index                = self->last_child->index + 1;
         self->last_child->sibling = node;
     } else self->child = node;
     
-    while (node) {
-        node->index  = last_index++;
-        node->parent = self;
-        node         = node->sibling;
-    }
+    node->index      = last_index;
     self->last_child = node;
     return node;
 }

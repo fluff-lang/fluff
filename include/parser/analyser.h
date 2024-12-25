@@ -37,6 +37,7 @@ typedef struct Analyser {
     Lexer * lexer;
 
     AnalyserState state;
+    ASTNode     * extra_return;
 
     Token    token;
     size_t   index;

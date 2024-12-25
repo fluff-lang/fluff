@@ -271,9 +271,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self) {
     if (_analyser_peek(self, 1).type == TOKEN_END)
         _analyser_error("cannot declare a variable without implying or specifying it's type");
 
-    self->state.last_scope = node;
-    self->state.in_decl    = (_analyser_peek(self, 1).type == TOKEN_COLON);
+    self->state.in_decl = (_analyser_peek(self, 1).type == TOKEN_COLON);
     _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_END));
+    _ast_node_append_child(node, self->extra_return);
+    self->extra_return = NULL;
 
     self->state = prev_state;
     return node;
@@ -291,9 +292,8 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
     AnalyserState prev_state = self->state;
 
     ASTNode * node = _new_ast_node(self->ast, AST_NODE_TYPE, self->position);
-    if (self->token.type == TOKEN_END || self->token.type == expect) {
-        // FIXME: missing type error
-        // if (node->last_child == 0) _analyser_error("missing type");
+    if (self->token.type == TOKEN_END) _analyser_error("missing type");
+    if (self->token.type == expect) {
         self->state = prev_state;
         return node;
     }
@@ -331,7 +331,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
             break;
         }
         case TOKEN_LBRACKET: {
-            // TODO: array types
+            _analyser_consume(self, 1);
+            node->data.type = AST_TYPE_ARRAY;
+            _ast_node_append_child(node, _analyser_read_type(self, expect));
+            _analyser_expect(self->index, TOKEN_CATEGORY_RBRACKET);
             break;
         }
         case TOKEN_FUNC: {
@@ -409,10 +412,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         );
     }
 
-    if (prev_state.in_decl && prev_state.last_scope->type == AST_NODE_DECLARATION) {
+    if (prev_state.in_decl) {
         _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON);
         _analyser_consume(self, 2);
-        _ast_node_append_child(prev_state.last_scope, _analyser_read_type(self, TOKEN_EQUAL));
+        self->extra_return = _analyser_read_type(self, TOKEN_EQUAL);
         _analyser_rewind(self, 1);
     }
 
