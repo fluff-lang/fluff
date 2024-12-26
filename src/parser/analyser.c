@@ -131,6 +131,12 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 #define TOKEN_FMT(__index)\
         _lexer_token_string_len(self->lexer, __index), _lexer_token_string(self->lexer, __index)
 
+#define TOKEN_TO_STRING_NODE()\
+        _new_ast_node_string_n(self->ast,\
+            &self->lexer->str[self->token.start.index], self->token.length, self->position\
+        )
+
+// TODO: make sure nodes are cleared up on error
 FLUFF_PRIVATE_API void _analyser_read(Analyser * self) {
     if (self->lexer->token_count == 0) return;
     self->token        = * self->lexer->tokens;
@@ -155,6 +161,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
         case TOKEN_CATEGORY_OPERATOR_ARROW:
         case TOKEN_CATEGORY_OPERATOR_DOT:
         case TOKEN_CATEGORY_OPERATOR_ELLIPSIS:
+        case TOKEN_CATEGORY_FUNC_DECL:
             { node = _analyser_read_expr(self, TOKEN_END); break; }
         case TOKEN_CATEGORY_IF:
             { node = _analyser_read_if(self); break; }
@@ -164,8 +171,6 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
             { node = _analyser_read_while(self); break; }
         case TOKEN_CATEGORY_DECL:
             { node = _analyser_read_decl(self); break; }
-        case TOKEN_CATEGORY_FUNC_DECL:
-            { node = _analyser_read_func(self); break; }
         case TOKEN_CATEGORY_CLASS_DECL:
             { node = _analyser_read_class(self); break; }
         case TOKEN_CATEGORY_LBRACE: {
@@ -281,7 +286,48 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self) {
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self) {
-    return NULL;
+    AnalyserState prev_state = self->state;
+
+    ASTNode * node = _new_ast_node(self->ast, AST_NODE_FUNCTION, self->position);
+
+    _analyser_consume(self, 1);
+    _analyser_expect(self->index, TOKEN_CATEGORY_LABEL, TOKEN_CATEGORY_LPAREN);
+    if (self->token.type == TOKEN_LABEL_LITERAL) {
+        if (self->state.in_expr)
+            _analyser_error("cannot declare a named function within an expression");
+        _ast_node_append_child(node, TOKEN_TO_STRING_NODE());
+        _analyser_consume(self, 1);
+    }
+    _analyser_expect(self->index, TOKEN_CATEGORY_LPAREN);
+    
+    self->state.in_call = true;
+    if (_analyser_peek(self, 1).type != TOKEN_RPAREN) {
+        while (_analyser_is_within_bounds(self)) {
+            if (self->token.type == TOKEN_RPAREN || self->token.type == self->state.expect) break;
+            _analyser_consume(self, 1);
+            if (_analyser_peek(self, 1).type == TOKEN_COLON) {
+                _ast_node_append_child(node, TOKEN_TO_STRING_NODE());
+                _analyser_consume(self, 2);
+            }
+            _ast_node_append_child(node, _analyser_read_type(self, self->state.expect));
+            _analyser_expect(self->index, 
+                TOKEN_CATEGORY_OPERATOR_COMMA, TOKEN_CATEGORY_RPAREN
+            );
+        }
+    } else _analyser_consume(self, 1);
+    _analyser_expect(self->index, TOKEN_CATEGORY_RPAREN);
+    _analyser_consume(self, 1);
+    self->state.in_call = false;
+    if (self->token.type == TOKEN_ARROW) {
+        _analyser_consume(self, 1);
+        _ast_node_append_child(node, _analyser_read_type(self, self->state.expect));
+    }
+
+    _analyser_expect(self->index, TOKEN_CATEGORY_LBRACE);
+    _ast_node_append_child(node, _analyser_read_scope(self));
+    
+    self->state = prev_state;
+    return node;
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self) {
@@ -327,10 +373,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
         }
         case TOKEN_LABEL_LITERAL: {
             node->data.type = AST_TYPE_CLASS;
-            _ast_node_append_child(node, _new_ast_node_string_n(self->ast, 
-                &self->lexer->str[self->token.start.index], self->token.length, 
-                self->position
-            ));
+            _ast_node_append_child(node, TOKEN_TO_STRING_NODE());
             break;
         }
         case TOKEN_LBRACKET: {
@@ -352,8 +395,12 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
                     if (self->token.type == TOKEN_RPAREN || self->token.type == expect) break;
                     _analyser_consume(self, 1);
                     _ast_node_append_child(node, _analyser_read_type(self, expect));
+                    _analyser_expect(self->index, 
+                        TOKEN_CATEGORY_OPERATOR_COMMA, TOKEN_CATEGORY_RPAREN
+                    );
                 }
             } else _analyser_consume(self, 1);
+            _analyser_expect(self->index, TOKEN_CATEGORY_RPAREN);
             self->state.in_call = false;
             if (_analyser_peek(self, 1).type == TOKEN_ARROW) {
                 _analyser_consume(self, 2);
@@ -413,6 +460,11 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             lhs = _new_ast_node_from_token(self->lexer, self->index, self->ast, self->position);
             break;
         }
+        case TOKEN_CATEGORY_FUNC_DECL: {
+            // Function declaration
+            lhs = _analyser_read_func(self);
+            break;
+        }
         case TOKEN_CATEGORY_LPAREN: {
             // Parenthesis
             _analyser_consume(self, 1);
@@ -428,6 +480,8 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         case TOKEN_CATEGORY_OPERATOR: {
             // Unary operator
             TokenType op_type = self->token.type;
+            if (token_info[op_type].unary_op == AST_OPERATOR_NONE)
+                _analyser_error("operator '%.*s' is not unary", TOKEN_FMT(self->index));
             _analyser_consume(self, 1);
             ASTNode * node = _analyser_read_expr_pratt(self, token_info[op_type].prefix_prec);
             if (!node) _analyser_error("pratt parser returned null");
@@ -441,6 +495,8 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             _token_category_string(category), TOKEN_FMT(self->index)
         );
     }
+
+    self->state.in_expr = true;
 
     if (prev_state.in_decl) {
         _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON, TOKEN_CATEGORY_RPAREN);

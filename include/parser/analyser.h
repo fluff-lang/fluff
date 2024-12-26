@@ -24,6 +24,7 @@ typedef struct AnalyserState {
     bool   in_statement;
     bool   in_paren;
     bool   in_decl;
+    bool   in_expr;
     size_t comma_count;
     size_t call_depth;
 } AnalyserState;

@@ -1,1 +1,1 @@
-let a: func(int, int) -> int;
+func(v: int) -> int {};
