@@ -105,27 +105,27 @@ FLUFF_API const char * fluff_enum_to_string(FluffEnum e);
      Utils
    ==========- */
 
-// Calls the corresponding callback in the current configuration.
-FLUFF_API void * fluff_alloc(void * ptr, size_t size);
-FLUFF_API void   fluff_free(void * ptr);
-FLUFF_API void   fluff_write(const char * restrict text);
-FLUFF_API void   fluff_error(FluffEnum type, const char * restrict text);
-
 FLUFF_API int fluff_format(char * buf, size_t buf_len, const char * restrict fmt, ...);
 FLUFF_API int fluff_vformat(char * buf, size_t buf_len, const char * restrict fmt, va_list args);
 FLUFF_API int fluff_vprint(FILE * f, const char * restrict fmt, va_list args);
 FLUFF_API int fluff_print(FILE * f, const char * restrict fmt, ...);
 
-FLUFF_API void * fluff_default_alloc(void * ptr, size_t size);
-FLUFF_API void   fluff_default_free(void * ptr);
-FLUFF_API void   fluff_default_write(const char * restrict text);
-FLUFF_API void   fluff_default_error(FluffEnum type, const char * restrict text);
+FLUFF_API void   * fluff_default_alloc(void * ptr, size_t size);
+FLUFF_API void     fluff_default_free(void * ptr);
+FLUFF_API void     fluff_default_write(const char * restrict text);
+FLUFF_API void     fluff_default_error(const char * restrict text);
+FLUFF_API void     fluff_default_panic(const char * restrict what);
+FLUFF_API int      fluff_default_read(char * buf, size_t len);
+
+FLUFF_API uint64_t fluff_default_hash(const void * data, size_t size);
+FLUFF_API uint64_t fluff_default_hash_combine(uint64_t a, uint64_t b);
+
+FLUFF_API void * fluff_default_new_mutex();
+FLUFF_API void   fluff_default_mutex_lock(void * self);
+FLUFF_API void   fluff_default_mutex_unlock(void * self);
+FLUFF_API void   fluff_default_mutex_wait(void * self);
+FLUFF_API void   fluff_default_free_mutex(void * self);
 
 FLUFF_API void fluff_private_test();
-
-FLUFF_API uint64_t fluff_hash(const void * data, size_t size);
-FLUFF_API uint64_t fluff_hash_combine(uint64_t a, uint64_t b);
-
-FLUFF_API uint fluff_ffs(uint v);
 
 #endif

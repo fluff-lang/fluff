@@ -59,19 +59,39 @@ FLUFF_API FluffResult fluff_version_is_compatible(FluffVersion a, FluffVersion b
 // See 'FluffConfig'
 typedef void   * (* FluffAllocFn)(void *, size_t);
 typedef void     (* FluffFreeFn)(void *);
-typedef void     (* FluffWriteFn)(const char * restrict text);
-typedef void     (* FluffErrorFn)(FluffEnum, const char * restrict text);
-typedef uint64_t (* FluffHashFn)(void *, size_t);
+typedef void     (* FluffWriteFn)(const char * restrict);
+typedef void     (* FluffErrorFn)(const char * restrict);
+typedef int      (* FluffReadFn)(char *, int);
+
+typedef uint64_t (* FluffHashFn)(const void *, size_t);
 typedef uint64_t (* FluffHashCombineFn)(uint64_t, uint64_t);
+
+typedef void (* FluffPanicFn)(const char * restrict);
+
+typedef void * (* FluffMutexNewFn)();
+typedef void   (* FluffMutexLockFn)(void *);
+typedef void   (* FluffMutexUnlockFn)(void *);
+typedef void   (* FluffMutexWaitFn)(void *);
+typedef void   (* FluffMutexFreeFn)(void *);
 
 // This struct determines multiple settings for the language.
 typedef struct FluffConfig {
-    FluffAllocFn       alloc_fn;        // Custom memory allocation function (default: malloc and realloc).
-    FluffFreeFn        free_fn;         // Custom memory deallocation function (default: free).
-    FluffWriteFn       write_fn;        // Custom CLI write function (default: printf).
-    FluffErrorFn       error_fn;        // Custom error handling function.
-    FluffHashFn        hash_fn;         // Custom function for hashing.
-    FluffHashCombineFn hash_combine_fn; // Custom function for hash combination.
+    FluffAllocFn  alloc_fn; // Custom memory allocation function (default: malloc and realloc).
+    FluffFreeFn   free_fn;  // Custom memory deallocation function (default: free).
+    FluffWriteFn  write_fn; // Custom function to write into stdio (default: fprintf).
+    FluffErrorFn  error_fn; // Custom function to write into stderr (default: fprintf).
+    FluffReadFn   read_fn;  // Custom function to read from stdin (default: fread).
+    FluffPanicFn  panic_fn; // Custom function for panic.
+    
+    FluffHashFn        hash_fn;         // Custom hashing function.
+    FluffHashCombineFn hash_combine_fn; // Custom hash combination function.
+
+    // NOTE: if you change one of these functions, it is recommended to change the others to avoid UB.
+    FluffMutexNewFn    new_mutex_fn;    // Custom mutex creation function.
+    FluffMutexLockFn   mutex_lock_fn;   // Custom mutex lock function.
+    FluffMutexUnlockFn mutex_unlock_fn; // Custom mutex unlock function.
+    FluffMutexWaitFn   mutex_wait_fn;   // Custom mutex wait function (wait until unlocked).
+    FluffMutexFreeFn   free_mutex_fn;   // Custom mutex free function.
 
     bool strict_mode; // Enables all strict compilation modes.
     bool manual_mem;  // Enables manual memory management. Only use it if you know what you're doing!
@@ -91,6 +111,23 @@ FLUFF_API FluffConfig fluff_get_default_config();
 
 // Creates a configuration preset given program arguments.
 FLUFF_API FluffConfig fluff_make_config_by_args(int argc, const char ** argv);
+
+// Calls the corresponding callback in the current configuration.
+FLUFF_API void * fluff_alloc(void * ptr, size_t size);
+FLUFF_API void   fluff_free(void * ptr);
+FLUFF_API void   fluff_write(const char * restrict text);
+FLUFF_API void   fluff_error(const char * restrict text);
+FLUFF_API void   fluff_panic(const char * restrict what);
+FLUFF_API int    fluff_read(char * buf, int len);
+
+FLUFF_API uint64_t fluff_hash(const void * data, size_t size);
+FLUFF_API uint64_t fluff_hash_combine(uint64_t a, uint64_t b);
+
+FLUFF_API void * fluff_new_mutex();
+FLUFF_API void   fluff_mutex_lock(void * self);
+FLUFF_API void   fluff_mutex_unlock(void * self);
+FLUFF_API void   fluff_mutex_wait(void * self);
+FLUFF_API void   fluff_free_mutex(void * self);
 
 FLUFF_API void fluff_write_fmt(const char * restrict fmt, ...);
 FLUFF_API void fluff_error_fmt(FluffEnum type, const char * restrict fmt, ...);

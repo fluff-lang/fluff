@@ -13,12 +13,20 @@
    ==============- */
 
 #define DEFAULT_CONFIG (FluffConfig){\
-            .alloc_fn = fluff_default_alloc, \
-            .free_fn  = fluff_default_free, \
-            .write_fn = fluff_default_write, \
-            .error_fn = fluff_default_error, \
-            .strict_mode = false, \
-            .manual_mem  = false, \
+            .alloc_fn         = fluff_default_alloc,\
+            .free_fn          = fluff_default_free,\
+            .write_fn         = fluff_default_write,\
+            .error_fn         = fluff_default_error,\
+            .panic_fn         = fluff_default_panic,\
+            .hash_fn          = fluff_default_hash,\
+            .hash_combine_fn  = fluff_default_hash_combine,\
+            .new_mutex_fn     = fluff_default_new_mutex,\
+            .mutex_lock_fn    = fluff_default_mutex_lock,\
+            .mutex_unlock_fn  = fluff_default_mutex_unlock,\
+            .mutex_wait_fn    = fluff_default_mutex_wait,\
+            .free_mutex_fn    = fluff_default_free_mutex,\
+            .strict_mode      = false,\
+            .manual_mem       = false,\
         };
 
 const FluffConfig global_default_config = DEFAULT_CONFIG;
@@ -45,10 +53,19 @@ FLUFF_API FluffResult fluff_init(FluffConfig * cfg, FluffVersion version) {
 
     // Sets each callback if they were not binded yet
     if (!cfg) return FLUFF_OK;
-    if (cfg->alloc_fn) global_config.alloc_fn = cfg->alloc_fn;
-    if (cfg->free_fn)  global_config.free_fn  = cfg->free_fn;
-    if (cfg->write_fn) global_config.write_fn = cfg->write_fn;
-    if (cfg->error_fn) global_config.error_fn = cfg->error_fn;
+    
+    if (cfg->alloc_fn)         global_config.alloc_fn        = cfg->alloc_fn;
+    if (cfg->free_fn)          global_config.free_fn         = cfg->free_fn;
+    if (cfg->write_fn)         global_config.write_fn        = cfg->write_fn;
+    if (cfg->error_fn)         global_config.error_fn        = cfg->error_fn;
+    if (cfg->panic_fn)         global_config.panic_fn        = cfg->panic_fn;
+    if (cfg->hash_fn)          global_config.hash_fn         = cfg->hash_fn;
+    if (cfg->hash_combine_fn)  global_config.hash_combine_fn = cfg->hash_combine_fn;
+    if (cfg->new_mutex_fn)     global_config.new_mutex_fn    = cfg->new_mutex_fn;
+    if (cfg->mutex_lock_fn)    global_config.mutex_lock_fn   = cfg->mutex_lock_fn;
+    if (cfg->mutex_unlock_fn)  global_config.mutex_unlock_fn = cfg->mutex_unlock_fn;
+    if (cfg->mutex_wait_fn)    global_config.mutex_wait_fn   = cfg->mutex_wait_fn;
+    if (cfg->free_mutex_fn)    global_config.free_mutex_fn   = cfg->free_mutex_fn;
 
     return FLUFF_OK;
 }
@@ -86,8 +103,44 @@ FLUFF_API void fluff_write(const char * restrict text) {
     global_config.write_fn(text);
 }
 
-FLUFF_API void fluff_error(FluffEnum type, const char * restrict text) {
-    global_config.error_fn(type, text);
+FLUFF_API void fluff_error(const char * restrict text) {
+    global_config.error_fn(text);
+}
+
+FLUFF_API void fluff_panic(const char * restrict what) {
+    global_config.panic_fn(what);
+}
+
+FLUFF_API int fluff_read(char * buf, int len) {
+    return global_config.read_fn(buf, len);
+}
+
+FLUFF_API uint64_t fluff_hash(const void * data, size_t size) {
+    return global_config.hash_fn(data, size);
+}
+
+FLUFF_API uint64_t fluff_hash_combine(uint64_t a, uint64_t b) {
+    return global_config.hash_combine_fn(a, b);
+}
+
+FLUFF_API void * fluff_new_mutex() {
+    return global_config.new_mutex_fn();
+}
+
+FLUFF_API void fluff_mutex_lock(void * self) {
+    global_config.mutex_lock_fn(self);
+}
+
+FLUFF_API void fluff_mutex_unlock(void * self) {
+    global_config.mutex_unlock_fn(self);
+}
+
+FLUFF_API void fluff_mutex_wait(void * self) {
+    global_config.mutex_wait_fn(self);
+}
+
+FLUFF_API void fluff_free_mutex(void * self) {
+    global_config.free_mutex_fn(self);
 }
 
 FLUFF_API void fluff_write_fmt(const char * restrict fmt, ...) {
@@ -119,5 +172,5 @@ FLUFF_API void fluff_error_fmt(FluffEnum type, const char * restrict fmt, ...) {
     buf[len - 1] = '\0';
     va_end(args2);
 
-    fluff_error(FLUFF_ERROR, buf);
+    fluff_error(buf);
 }
