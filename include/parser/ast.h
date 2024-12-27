@@ -64,6 +64,10 @@ typedef enum ASTNodeType {
     AST_NODE_FUNCTION, 
     AST_NODE_CLASS, 
 
+    AST_NODE_RETURN, 
+    AST_NODE_BREAK, 
+    AST_NODE_CONTINUE, 
+
     AST_NODE_TYPE, 
     AST_NODE_ANNOTATION, 
 } ASTNodeType;

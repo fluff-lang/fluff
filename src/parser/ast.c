@@ -37,9 +37,12 @@ FLUFF_CONSTEXPR_V ASTNodeInfo node_info[] = {
     MAKE_INFO(AST_NODE_FOR,            4) // TODO: this
     MAKE_INFO(AST_NODE_WHILE,          2)
     MAKE_INFO(AST_NODE_DECLARATION,    2) // TODO: relation this with scope
-    MAKE_INFO(AST_NODE_FUNCTION,       0) // TODO: this
+    MAKE_INFO(AST_NODE_FUNCTION,       0)
     MAKE_INFO(AST_NODE_CLASS,          0) // TODO: this
-    MAKE_INFO(AST_NODE_TYPE,           0) // TODO: this
+    MAKE_INFO(AST_NODE_RETURN,         1)
+    MAKE_INFO(AST_NODE_BREAK,          0)
+    MAKE_INFO(AST_NODE_CONTINUE,       0)
+    MAKE_INFO(AST_NODE_TYPE,           0)
     MAKE_INFO(AST_NODE_ANNOTATION,     0) // TODO: this
 };
 

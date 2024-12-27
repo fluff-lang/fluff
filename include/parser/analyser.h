@@ -57,6 +57,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_while(Analyser * self);
 FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self);
 FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self);
 FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self);
+FLUFF_PRIVATE_API ASTNode * _analyser_read_control(Analyser * self);
 FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expect);
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr(Analyser * self, TokenType expect);
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit);
