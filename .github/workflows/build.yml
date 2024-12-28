@@ -52,15 +52,10 @@ jobs:
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: ctest --build-config ${{ matrix.build_type }}
-  deploy:
-    runs-on: ${{ matrix.os }}
-    needs: build
-    steps:
       - name: Download Artifact
         uses: actions/download-artifact@v4.1.8
         with:
           name: fluff-archive
           path: /opt
-
       - name: List Artifacts
         run: ls /opt
