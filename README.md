@@ -18,7 +18,7 @@ println(animal.greet()); // woof!
 
 ```
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/fluff-lang/fluff/cmake-multi-platform.yml)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/fluff-lang/fluff/build.yml)
 ![Linux](https://img.shields.io/badge/platform-linux-white?logo=linux&logoColor=white)
 ![Unix](https://img.shields.io/badge/platform-unix-white?logo=freebsd&logoColor=white)
 
