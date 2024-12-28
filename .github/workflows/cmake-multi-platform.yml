@@ -70,8 +70,10 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
 
-    - name: Download a Build Artifact
-      uses: actions/download-artifact@v4.1.8
-
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.5.0
+      with:
+        path: build
+
+    - name: Download a Build Artifact
+      uses: actions/download-artifact@v4.1.8
