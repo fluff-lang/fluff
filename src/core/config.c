@@ -23,7 +23,6 @@
             .new_mutex_fn     = fluff_default_new_mutex,\
             .mutex_lock_fn    = fluff_default_mutex_lock,\
             .mutex_unlock_fn  = fluff_default_mutex_unlock,\
-            .mutex_wait_fn    = fluff_default_mutex_wait,\
             .free_mutex_fn    = fluff_default_free_mutex,\
             .strict_mode      = false,\
             .manual_mem       = false,\
@@ -54,18 +53,17 @@ FLUFF_API FluffResult fluff_init(FluffConfig * cfg, FluffVersion version) {
     // Sets each callback if they were not binded yet
     if (!cfg) return FLUFF_OK;
     
-    if (cfg->alloc_fn)         global_config.alloc_fn        = cfg->alloc_fn;
-    if (cfg->free_fn)          global_config.free_fn         = cfg->free_fn;
-    if (cfg->write_fn)         global_config.write_fn        = cfg->write_fn;
-    if (cfg->error_fn)         global_config.error_fn        = cfg->error_fn;
-    if (cfg->panic_fn)         global_config.panic_fn        = cfg->panic_fn;
-    if (cfg->hash_fn)          global_config.hash_fn         = cfg->hash_fn;
-    if (cfg->hash_combine_fn)  global_config.hash_combine_fn = cfg->hash_combine_fn;
-    if (cfg->new_mutex_fn)     global_config.new_mutex_fn    = cfg->new_mutex_fn;
-    if (cfg->mutex_lock_fn)    global_config.mutex_lock_fn   = cfg->mutex_lock_fn;
-    if (cfg->mutex_unlock_fn)  global_config.mutex_unlock_fn = cfg->mutex_unlock_fn;
-    if (cfg->mutex_wait_fn)    global_config.mutex_wait_fn   = cfg->mutex_wait_fn;
-    if (cfg->free_mutex_fn)    global_config.free_mutex_fn   = cfg->free_mutex_fn;
+    if (cfg->alloc_fn)        global_config.alloc_fn        = cfg->alloc_fn;
+    if (cfg->free_fn)         global_config.free_fn         = cfg->free_fn;
+    if (cfg->write_fn)        global_config.write_fn        = cfg->write_fn;
+    if (cfg->error_fn)        global_config.error_fn        = cfg->error_fn;
+    if (cfg->panic_fn)        global_config.panic_fn        = cfg->panic_fn;
+    if (cfg->hash_fn)         global_config.hash_fn         = cfg->hash_fn;
+    if (cfg->hash_combine_fn) global_config.hash_combine_fn = cfg->hash_combine_fn;
+    if (cfg->new_mutex_fn)    global_config.new_mutex_fn    = cfg->new_mutex_fn;
+    if (cfg->mutex_lock_fn)   global_config.mutex_lock_fn   = cfg->mutex_lock_fn;
+    if (cfg->mutex_unlock_fn) global_config.mutex_unlock_fn = cfg->mutex_unlock_fn;
+    if (cfg->free_mutex_fn)   global_config.free_mutex_fn   = cfg->free_mutex_fn;
 
     return FLUFF_OK;
 }
@@ -133,10 +131,6 @@ FLUFF_API void fluff_mutex_lock(void * self) {
 
 FLUFF_API void fluff_mutex_unlock(void * self) {
     global_config.mutex_unlock_fn(self);
-}
-
-FLUFF_API void fluff_mutex_wait(void * self) {
-    global_config.mutex_wait_fn(self);
 }
 
 FLUFF_API void fluff_free_mutex(void * self) {

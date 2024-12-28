@@ -41,7 +41,7 @@
 #   ifdef FLUFF_IMPLEMENTATION
 #       define FLUFF_API
 #   else
-#       define FLUFF_API extern
+#       define FLUFF_API
 #   endif
 #endif
 

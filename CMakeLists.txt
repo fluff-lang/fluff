@@ -11,6 +11,26 @@ find_package(Threads)
 file(GLOB_RECURSE SOURCES src/*.c)
 include_directories(include/)
 
+# TODO: maybe use sphinx for documentation?
+option(BUILD_DOC "Build documentation" ON)
+find_package(Doxygen)
+if (DOXYGEN_FOUND)
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+    message("Doxygen build started")
+
+    add_custom_target(doc_doxygen ALL
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM
+    )
+else (DOXYGEN_FOUND)
+    message("Doxygen is required for building documentation")
+endif (DOXYGEN_FOUND)
+
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 target_compile_options(${PROJECT_NAME} PUBLIC -gdwarf-4 -Wall -O0 -DFLUFF_DEBUG)

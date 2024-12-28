@@ -2,14 +2,6 @@
 #ifndef FLUFF_CORE_CONFIG_H
 #define FLUFF_CORE_CONFIG_H
 
-/*
-
-FIXME: MISSING FUNCTIONALITY
-      - loading FluffConfig by program args
-      - error handling without immediate panic
-
-*/
-
 /* -=============
      Includes
    =============- */
@@ -20,21 +12,18 @@ FIXME: MISSING FUNCTIONALITY
      Macros
    ===========- */
 
-// FIXME: asserts do not actually exit anymore
+/// Checkes if a condition is true, if it's not, panics with a custom message.
 #define fluff_assert(__cond, ...) {\
             if (!(bool)(__cond))\
-                fluff_panic_fmt("[" __FILE__ "]: assertion " #__cond " failed! " __VA_ARGS__);\
+                fluff_panic_fmt("[" __FILE__ "]: assertion (" #__cond ") failed! " __VA_ARGS__);\
         }
 
-#ifdef FLUFF_DEBUG
-#   define fluff_log(__fmt, ...) fluff_write("%s:%d: " __fmt, __FILE__, __LINE__, ##__VA_ARGS__);
-#else
-#   define fluff_log(...)
-#endif
-
-#define FLUFF_MAKE_VERSION(__major, __minor, __patch)\
+// Creates a fluff version given major, minor, and patch numbers.
+#define fluff_make_version(__major, __minor, __patch)\
         ((FluffVersion){ .major = (__major), .minor = (__minor), .patch = (__patch) })
-#define FLUFF_CURRENT_VERSION FLUFF_MAKE_VERSION(0, 1, 0)
+
+// Gives the current fluff version.
+#define FLUFF_CURRENT_VERSION fluff_make_version(0, 1, 0)
 
 /* -=============
      Version
@@ -54,72 +43,133 @@ FLUFF_API FluffResult fluff_version_is_compatible(FluffVersion a, FluffVersion b
      Configuration
    ==================- */
 
-// See 'FluffConfig'
-typedef void   * (* FluffAllocFn)(void *, size_t);
-typedef void     (* FluffFreeFn)(void *);
-typedef void     (* FluffWriteFn)(const char * restrict);
-typedef int      (* FluffReadFn)(char *, int);
+/*! Callback to allocate or reallocate a chunk of memory in the heap */
+typedef void * (* FluffAllocFn)(void *, size_t);
 
+/*! Callback to free a chunk of memory in the heap */
+typedef void (* FluffFreeFn)(void *);
+
+/*! Callback to write into the console */
+typedef void (* FluffWriteFn)(const char * restrict);
+
+/*! Callback to read from the console */
+typedef int (* FluffReadFn)(char *, int);
+
+/*! Callback to hash data */
 typedef uint64_t (* FluffHashFn)(const void *, size_t);
+
+/*! Callback to combine two hashed values */
 typedef uint64_t (* FluffHashCombineFn)(uint64_t, uint64_t);
 
+/*! Callback to create a mutex */
 typedef void * (* FluffMutexNewFn)();
-typedef void   (* FluffMutexLockFn)(void *);
-typedef void   (* FluffMutexUnlockFn)(void *);
-typedef void   (* FluffMutexWaitFn)(void *);
+
+/*! Callback to lock a mutex */
+typedef void (* FluffMutexLockFn)(void *);
+
+/*! Callback to unlock a mutex */
+typedef void (* FluffMutexUnlockFn)(void *);
 typedef void   (* FluffMutexFreeFn)(void *);
 
-// This struct determines multiple settings for the language.
+/*! This struct determines multiple settings for the language. */
 typedef struct FluffConfig {
-    FluffAllocFn  alloc_fn; // Custom memory allocation function (default: malloc and realloc).
-    FluffFreeFn   free_fn;  // Custom memory deallocation function (default: free).
-    FluffWriteFn  write_fn; // Custom function to write into stdio (default: fprintf).
-    FluffWriteFn  error_fn; // Custom function to write into stderr (default: fprintf).
-    FluffWriteFn  panic_fn; // Custom function for panic.
-    FluffReadFn   read_fn;  // Custom function to read from stdin (default: fread).
+    FluffAllocFn  alloc_fn;
+    FluffFreeFn   free_fn;
+    FluffWriteFn  write_fn;
+    FluffWriteFn  error_fn;
+    FluffWriteFn  panic_fn;
+    FluffReadFn   read_fn;
     
-    FluffHashFn        hash_fn;         // Custom hashing function.
-    FluffHashCombineFn hash_combine_fn; // Custom hash combination function.
+    FluffHashFn        hash_fn;
+    FluffHashCombineFn hash_combine_fn;
 
-    // NOTE: if you change one of these functions, it is recommended to change the others to avoid UB.
-    FluffMutexNewFn    new_mutex_fn;    // Custom mutex creation function.
-    FluffMutexLockFn   mutex_lock_fn;   // Custom mutex lock function.
-    FluffMutexUnlockFn mutex_unlock_fn; // Custom mutex unlock function.
-    FluffMutexWaitFn   mutex_wait_fn;   // Custom mutex wait function (wait until unlocked).
-    FluffMutexFreeFn   free_mutex_fn;   // Custom mutex free function.
+    FluffMutexNewFn    new_mutex_fn;
+    FluffMutexLockFn   mutex_lock_fn;
+    FluffMutexUnlockFn mutex_unlock_fn;
+    FluffMutexFreeFn   free_mutex_fn;
 
-    bool strict_mode; // Enables all strict compilation modes.
-    bool manual_mem;  // Enables manual memory management. Only use it if you know what you're doing!
+    bool strict_mode;
+    bool manual_mem;
 } FluffConfig;
 
-// Initializes fluff. If 'cfg' is NULL then the default configuration will be used instead.
+/*! Initializes fluff. If 'cfg' is NULL then the default configuration will be used instead. */
 FLUFF_API FluffResult fluff_init(FluffConfig * cfg, FluffVersion version) FLUFF_ERROR_RETURN;
 
-// Closes fluff.
+/*! Closes fluff. */
 FLUFF_API void fluff_close();
 
-// Obtains the fluff current configuration.
+/*! Obtains the fluff current configuration. */
 FLUFF_API FluffConfig fluff_get_config();
 
-// Obtains the fluff default configuration
+/*! Obtains the fluff default configuration */
 FLUFF_API FluffConfig fluff_get_default_config();
 
-// Creates a configuration preset given program arguments.
+/*! Creates a configuration preset given program arguments. */
 FLUFF_API FluffConfig fluff_make_config_by_args(int argc, const char ** argv);
 
-// Calls the corresponding callback according to the current configuration.
-FLUFF_API void   * fluff_alloc(void * ptr, size_t size);
-FLUFF_API void     fluff_free(void * ptr);
-FLUFF_API void     fluff_write(const char * restrict text);
-FLUFF_API void     fluff_error(const char * restrict text);
-FLUFF_API void     fluff_panic(const char * restrict what);
-FLUFF_API int      fluff_read(char * buf, int len);
+/*!
+    Allocates memory in the heap
+    This works as a mix of malloc() and realloc().
+    Memory can be also expanded by using the 'ptr' argument.
+    @param 'ptr' is the old pointer for memory expansion
+    @param 'size' is the size, in byte, of the memory chunk
+    @return The memory chunk
+*/
+FLUFF_API void * fluff_alloc(void * ptr, size_t size);
+
+/*!
+    Frees memory from the heap
+    This works identically to free().
+    @param 'ptr' is pointer to be free'd
+*/
+FLUFF_API void fluff_free(void * ptr);
+
+/*!
+    Writes text to the hosts CLI.
+    @param 'text' is text to be written
+*/
+FLUFF_API void fluff_write(const char * restrict text);
+
+/*!
+    Same as fluff_write() but may write to the error output instead.
+    @param 'text' is text to be written
+*/
+FLUFF_API void fluff_error(const char * restrict text);
+
+/*!
+    Acts as fluff_error() but immediately aborts execution.
+    @param 'text' is text to be written
+*/
+FLUFF_API void fluff_panic(const char * restrict what);
+
+/*!
+    Reads user input from the hosts CLI.
+    If a valid parameter is not specified, the function will return the length of the input buffer only.
+    @param 'buf' is the buffer to write the input to
+    @param 'len' is the length of the buffer pointed to by 'buf'
+    @return Length of the input buffer
+*/
+FLUFF_API int fluff_read(char * buf, int len);
+
+/*!
+    Reads user input from the hosts CLI.
+    If a valid parameter is not specified, the function will return the length of the input buffer only.
+    @param 'buf' is the buffer to write the input to
+    @param 'len' is the length of the buffer pointed to by 'buf'
+    @return The hashed value
+*/
 FLUFF_API uint64_t fluff_hash(const void * data, size_t size);
+
+/*!
+    Reads user input from the hosts CLI.
+    If a valid parameter is not specified, the function will return the length of the input buffer only.
+    @param 'a' hashed value 1
+    @param 'b' hashed value 2
+*/
 FLUFF_API uint64_t fluff_hash_combine(uint64_t a, uint64_t b);
 FLUFF_API void   * fluff_new_mutex();
 FLUFF_API void     fluff_mutex_lock(void * self);
 FLUFF_API void     fluff_mutex_unlock(void * self);
-FLUFF_API void     fluff_mutex_wait(void * self);
 FLUFF_API void     fluff_free_mutex(void * self);
 
 FLUFF_API void fluff_error_fmt(const char * restrict fmt, ...);

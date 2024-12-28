@@ -27,6 +27,8 @@ typedef struct AnalyserState {
     bool   in_expr;
     size_t comma_count;
     size_t call_depth;
+
+    FluffResult result;
 } AnalyserState;
 
 typedef struct FluffInterpreter FluffInterpreter;
