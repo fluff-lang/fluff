@@ -7,7 +7,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <threads.h>
+
+#include <pthread.h>
+
+/* -==============
+     Internals
+   ==============- */
 
 FLUFF_API void fluff_private_test() {
     FluffInterpreter * interpret = fluff_new_interpreter();
@@ -91,28 +96,28 @@ FLUFF_API uint64_t fluff_default_hash_combine(uint64_t a, uint64_t b) {
 // TODO: mutexes
 // TODO: make mutexes time out
 FLUFF_API void * fluff_default_new_mutex() {
-    mtx_t * self = fluff_alloc(NULL, sizeof(mtx_t));
-    if (mtx_init(self, mtx_timed) != thrd_success) {
-        fluff_free(self);
-        fluff_panic("failed to create mutex");
-    }
+    pthread_mutex_t * self = fluff_alloc(NULL, sizeof(pthread_mutex_t));
+    // NOTE: this always returns 0 so it's not going to be handled
+    pthread_mutex_init(self, NULL);
     return self;
 }
 
 FLUFF_API void fluff_default_mutex_lock(void * self) {
+    if (pthread_mutex_lock((pthread_mutex_t *)self) == EDEADLK)
+        fluff_panic_fmt("deadlock on thread %p", self);
+}
 
+FLUFF_API bool fluff_default_mutex_try_lock(void * self) {
+    return (pthread_mutex_trylock((pthread_mutex_t *)self) == EBUSY);
 }
 
 FLUFF_API void fluff_default_mutex_unlock(void * self) {
-
-}
-
-FLUFF_API void fluff_default_mutex_wait(void * self) {
-
+    if (pthread_mutex_unlock((pthread_mutex_t *)self) == EPERM)
+        fluff_panic_fmt("thread doesn't own the mutex %p", self);
 }
 
 FLUFF_API void fluff_default_free_mutex(void * self) {
-    mtx_destroy((mtx_t *)self);
+    pthread_mutex_destroy((pthread_mutex_t *)self);
     fluff_free(self);
 }
 

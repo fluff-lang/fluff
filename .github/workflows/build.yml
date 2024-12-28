@@ -20,10 +20,10 @@ jobs:
             c_compiler: gcc
           - os: ubuntu-latest
             c_compiler: clang
-          # - os: macos-latest
-          #   c_compiler: gcc
-          # - os: macos-latest
-          #   c_compiler: clang
+          - os: macos-latest
+            c_compiler: gcc
+          - os: macos-latest
+            c_compiler: clang
     steps:
       - uses: actions/checkout@v4
       - name: Set reusable strings
@@ -44,7 +44,7 @@ jobs:
       - name: Archive Artifacts
         uses: actions/upload-artifact@v4.5.0
         with:
-          name: fluff-${{ matrix.os }}
+          name: fluff-${{ matrix.os }}-${{ matrix.c_compiler }}
           path: ${{ steps.strings.outputs.build-output-dir }}
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}

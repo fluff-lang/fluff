@@ -13,19 +13,20 @@
    ==============- */
 
 #define DEFAULT_CONFIG (FluffConfig){\
-            .alloc_fn         = fluff_default_alloc,\
-            .free_fn          = fluff_default_free,\
-            .write_fn         = fluff_default_write,\
-            .error_fn         = fluff_default_error,\
-            .panic_fn         = fluff_default_panic,\
-            .hash_fn          = fluff_default_hash,\
-            .hash_combine_fn  = fluff_default_hash_combine,\
-            .new_mutex_fn     = fluff_default_new_mutex,\
-            .mutex_lock_fn    = fluff_default_mutex_lock,\
-            .mutex_unlock_fn  = fluff_default_mutex_unlock,\
-            .free_mutex_fn    = fluff_default_free_mutex,\
-            .strict_mode      = false,\
-            .manual_mem       = false,\
+            .alloc_fn          = fluff_default_alloc,\
+            .free_fn           = fluff_default_free,\
+            .write_fn          = fluff_default_write,\
+            .error_fn          = fluff_default_error,\
+            .panic_fn          = fluff_default_panic,\
+            .hash_fn           = fluff_default_hash,\
+            .hash_combine_fn   = fluff_default_hash_combine,\
+            .new_mutex_fn      = fluff_default_new_mutex,\
+            .mutex_lock_fn     = fluff_default_mutex_lock,\
+            .mutex_try_lock_fn = fluff_default_mutex_try_lock,\
+            .mutex_unlock_fn   = fluff_default_mutex_unlock,\
+            .free_mutex_fn     = fluff_default_free_mutex,\
+            .strict_mode       = false,\
+            .manual_mem        = false,\
         };
 
 const FluffConfig global_default_config = DEFAULT_CONFIG;
@@ -127,6 +128,10 @@ FLUFF_API void * fluff_new_mutex() {
 
 FLUFF_API void fluff_mutex_lock(void * self) {
     global_config.mutex_lock_fn(self);
+}
+
+FLUFF_API bool fluff_mutex_try_lock(void * self) {
+    return global_config.mutex_try_lock_fn(self);
 }
 
 FLUFF_API void fluff_mutex_unlock(void * self) {

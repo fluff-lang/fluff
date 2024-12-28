@@ -122,8 +122,8 @@ FLUFF_API uint64_t fluff_default_hash_combine(uint64_t a, uint64_t b);
 
 FLUFF_API void * fluff_default_new_mutex();
 FLUFF_API void   fluff_default_mutex_lock(void * self);
+FLUFF_API bool   fluff_default_mutex_try_lock(void * self);
 FLUFF_API void   fluff_default_mutex_unlock(void * self);
-FLUFF_API void   fluff_default_mutex_wait(void * self);
 FLUFF_API void   fluff_default_free_mutex(void * self);
 
 FLUFF_API void fluff_private_test();

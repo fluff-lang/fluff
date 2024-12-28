@@ -67,9 +67,14 @@ typedef void * (* FluffMutexNewFn)();
 /*! Callback to lock a mutex */
 typedef void (* FluffMutexLockFn)(void *);
 
+/*! Callback to try to lock a mutex */
+typedef bool (* FluffMutexTryLockFn)(void *);
+
 /*! Callback to unlock a mutex */
 typedef void (* FluffMutexUnlockFn)(void *);
-typedef void   (* FluffMutexFreeFn)(void *);
+
+/*! Callback to free a mutex */
+typedef void (* FluffMutexFreeFn)(void *);
 
 /*! This struct determines multiple settings for the language. */
 typedef struct FluffConfig {
@@ -83,10 +88,11 @@ typedef struct FluffConfig {
     FluffHashFn        hash_fn;
     FluffHashCombineFn hash_combine_fn;
 
-    FluffMutexNewFn    new_mutex_fn;
-    FluffMutexLockFn   mutex_lock_fn;
-    FluffMutexUnlockFn mutex_unlock_fn;
-    FluffMutexFreeFn   free_mutex_fn;
+    FluffMutexNewFn     new_mutex_fn;
+    FluffMutexLockFn    mutex_lock_fn;
+    FluffMutexUnlockFn  mutex_unlock_fn;
+    FluffMutexTryLockFn mutex_try_lock_fn;
+    FluffMutexFreeFn    free_mutex_fn;
 
     bool strict_mode;
     bool manual_mem;
@@ -169,6 +175,7 @@ FLUFF_API uint64_t fluff_hash(const void * data, size_t size);
 FLUFF_API uint64_t fluff_hash_combine(uint64_t a, uint64_t b);
 FLUFF_API void   * fluff_new_mutex();
 FLUFF_API void     fluff_mutex_lock(void * self);
+FLUFF_API bool     fluff_mutex_try_lock(void * self);
 FLUFF_API void     fluff_mutex_unlock(void * self);
 FLUFF_API void     fluff_free_mutex(void * self);
 

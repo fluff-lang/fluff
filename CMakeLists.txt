@@ -5,9 +5,6 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 project(fluff LANGUAGES C VERSION 0.1.0)
 
-# TODO: make threads not a requirement
-find_package(Threads REQUIRED)
-
 file(GLOB_RECURSE SOURCES src/*.c)
 include_directories(include/)
 
@@ -32,5 +29,9 @@ else (DOXYGEN_FOUND)
 endif (DOXYGEN_FOUND)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
+
+# TODO: make threads not a requirement
+find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
+
 target_compile_options(${PROJECT_NAME} PUBLIC -gdwarf-4 -Wall -O0 -DFLUFF_DEBUG)
