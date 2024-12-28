@@ -306,7 +306,7 @@ FLUFF_PRIVATE_API void _free_lexer(Lexer * self) {
 
 /* -=- Parsing -=- */
 #define _lexer_error(__fmt, ...)\
-        fluff_error_fmt(FLUFF_COMPILE_ERROR, "%s:%zu:%zu: " __fmt, \
+        fluff_panic_fmt("%s:%zu:%zu: " __fmt, \
             self->interpret->path, self->location.line + 1, self->location.column + 1, ##__VA_ARGS__\
         )
 

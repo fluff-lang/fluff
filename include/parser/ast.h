@@ -168,6 +168,9 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorType op
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_unary_operator(AST * ast, ASTOperatorType op, ASTNode * expr, TextSect loc);
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_call(AST * ast, ASTNode * nodes, size_t count, TextSect loc);
 
+// Moves a node allocated in the stack to the heap
+FLUFF_PRIVATE_API ASTNode * _new_ast_node_from_stack(AST * ast, ASTNode * nodes, size_t count, TextSect loc);
+
 // Frees a node regardless of status or reference count
 FLUFF_PRIVATE_API void _free_ast_node(ASTNode * self);
 

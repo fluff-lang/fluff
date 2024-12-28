@@ -102,13 +102,13 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 // TODO: make ErrorPool class for supporting multiple errors
 #ifdef FLUFF_DEBUG
 #define _analyser_error_print_d(__line, __func, __fmt, ...)\
-        fluff_error_fmt(FLUFF_COMPILE_ERROR, "[at %s:%s():%d]:\n\t-> %s:%zu:%zu: " __fmt, \
+        fluff_panic_fmt("[at %s:%s():%d]:\n\t-> %s:%zu:%zu: " __fmt, \
             __FILE__, __func, __line, self->lexer->interpret->path, \
             self->position.line + 1, self->position.column + 1, ##__VA_ARGS__\
         )
 #else
 #define _analyser_error_print_d(__line, __func, __fmt, ...)\
-        fluff_error_fmt(FLUFF_COMPILE_ERROR, "%s:%zu:%zu: " __fmt, \
+        fluff_panic_fmt("%s:%zu:%zu: " __fmt, \
             self->lexer->interpret->path, \
             self->position.line + 1, self->position.column + 1, ##__VA_ARGS__\
         )

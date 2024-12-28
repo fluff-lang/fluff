@@ -33,7 +33,7 @@ FLUFF_API FluffResult fluff_interpreter_read_file(FluffInterpreter * self, const
 
     FILE * f = fopen(path, "r");
     if (!f) {
-        fluff_error_fmt(FLUFF_COMPILE_ERROR, "failed to open file '%s': %s", path, strerror(errno));
+        fluff_error_fmt("failed to open file '%s': %s", path, strerror(errno));
         return FLUFF_FAILURE;
     }
 

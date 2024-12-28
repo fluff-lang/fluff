@@ -143,34 +143,50 @@ FLUFF_API void fluff_free_mutex(void * self) {
     global_config.free_mutex_fn(self);
 }
 
-FLUFF_API void fluff_write_fmt(const char * restrict fmt, ...) {
-    va_list args1;
-    va_start(args1, fmt);
+FLUFF_API void _write_callback_fmt_v(FluffWriteFn fn, const char * restrict fmt, va_list args) {
+    va_list args1, args2;
+    va_copy(args1, args);
+    va_copy(args2, args);
+
     int len = fluff_vformat(NULL, 0, fmt, args1) + 1;
+    if (len < 0) fluff_panic("format failure");
     va_end(args1);
 
-    va_list args2;
-    va_start(args2, fmt);
     char buf[len];
-    fluff_vformat(buf, len, fmt, args2);
-    buf[len - 1] = '\0';
+
+    if (fluff_vformat(buf, len, fmt, args2) < 0)
+        fluff_panic("format failure");
     va_end(args2);
 
-    fluff_write(buf);
+    buf[len - 1] = '\0';
+
+    fn(buf);
 }
 
-FLUFF_API void fluff_error_fmt(FluffEnum type, const char * restrict fmt, ...) {
-    va_list args1;
-    va_start(args1, fmt);
-    int len = fluff_vformat(NULL, 0, fmt, args1) + 1;
-    va_end(args1);
+FLUFF_API void _write_callback_fmt(FluffWriteFn fn, const char * restrict fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    _write_callback_fmt_v(fn, fmt, args);
+    va_end(args);
+}
 
-    va_list args2;
-    va_start(args2, fmt);
-    char buf[len];
-    fluff_vformat(buf, len, fmt, args2);
-    buf[len - 1] = '\0';
-    va_end(args2);
+FLUFF_API void fluff_write_fmt(const char * restrict fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    _write_callback_fmt_v(global_config.write_fn, fmt, args);
+    va_end(args);
+}
 
-    fluff_error(buf);
+FLUFF_API void fluff_error_fmt(const char * restrict fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    _write_callback_fmt_v(global_config.error_fn, fmt, args);
+    va_end(args);
+}
+
+FLUFF_API void fluff_panic_fmt(const char * restrict fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    _write_callback_fmt_v(global_config.panic_fn, fmt, args);
+    va_end(args);
 }
