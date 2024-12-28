@@ -44,11 +44,13 @@ jobs:
           -S ${{ github.workspace }}
       - name: Build
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      - name: List Artifacts
+        run: ls ${{ steps.strings.outputs.build-output-dir }}
       - name: Archive Artifacts
         uses: actions/upload-artifact@v4.5.0
         with:
           name: fluff-archive
-          path: build
+          path: ${{ steps.strings.outputs.build-output-dir }}
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: ctest --build-config ${{ matrix.build_type }}
@@ -56,6 +58,4 @@ jobs:
         uses: actions/download-artifact@v4.1.8
         with:
           name: fluff-archive
-          path: /opt
-      - name: List Artifacts
-        run: ls /opt
+          path: ${{ steps.strings.outputs.build-output-dir }}
