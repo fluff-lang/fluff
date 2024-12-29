@@ -12,17 +12,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         build_type: [Release]
         c_compiler: [gcc, clang]
         include:
           - os: ubuntu-latest
             c_compiler: gcc
           - os: ubuntu-latest
-            c_compiler: clang
-          - os: macos-latest
-            c_compiler: gcc
-          - os: macos-latest
             c_compiler: clang
     steps:
       - uses: actions/checkout@v4
