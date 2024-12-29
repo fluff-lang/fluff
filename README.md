@@ -1,9 +1,4 @@
-<center>
-<h1>The Fluff programming language</h1>
-
-![Static Badge](https://img.shields.io/badge/version-0.1.0-blue) [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/fluff-lang/fluff/blob/master/LICENSE.md) ![Commit activity](https://img.shields.io/github/commit-activity/w/fluff-lang/fluff?logo=github&label=commits)
-
-</center>
+<img align="left" src="promo/logo_white.png" width="390px">
 
 Fluff is a programming language designed for type safety, low memory usage and speed. Think of it as a mix of Rust, C++ and Typescript, all bundled in a lovingly written bundle for the true :3c users.
 
@@ -21,6 +16,23 @@ class Dog : Animal {
 let animal: Animal = Dog.new();
 println(animal.greet()); // woof!
 ```
+
+<br/>
+
+<div align="center">
+
+License | Build status | Community | Documentation
+
+</div>
+
+---
+
+<div align="center">
+
+![Static Badge](https://img.shields.io/badge/version-0.1.0-blue)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/fluff-lang/fluff/blob/master/LICENSE.md) ![Commit activity](https://img.shields.io/github/commit-activity/w/fluff-lang/fluff?logo=github&label=commits)
+
+</div>
 
 ## Build status
 
