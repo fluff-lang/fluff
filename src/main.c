@@ -10,11 +10,11 @@ int main(int argc, const char * argv[]) {
     if (fluff_init(&cfg, FLUFF_CURRENT_VERSION) != FLUFF_OK)
         fluff_panic("unmatched fluff versions");
 
-    char msg_buf[1024] = { 0 };
+    char msg_buf[2048] = { 0 };
     FluffLog logs[32]  = { 0 };
 
     fluff_set_log(logs, 32);
-    fluff_set_log_msg_buffer(msg_buf, 1024);
+    fluff_set_log_msg_buffer(msg_buf, 2048);
     
     FluffInstance * instance = fluff_new_instance();
 

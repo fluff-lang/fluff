@@ -100,26 +100,42 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
     FLUFF_CLEANUP(self);
 }
 
-// TODO: make ErrorPool class for supporting multiple errors
-#define _analyser_error_print_d(__line, __func, __fmt, ...)\
-        fluff_push_log_d(FLUFF_LOG_TYPE_ERROR,\
+// This throws any type of log with some extra information
+#define _analyser_log_d(__type, __line, __func, ...)\
+        fluff_push_log_d(__type,\
             self->interpret->path, self->position.line + 1, self->position.column + 1,\
             __FILE__, __func, __line, __VA_ARGS__\
         )
 
-#define _analyser_error_print(...)\
-        _analyser_error_print_d(__LINE__, __func__, __VA_ARGS__)
+// This throws any type of log
+#define _analyser_log(__type, ...)\
+        _analyser_log_d(__type, __LINE__, __func__, __VA_ARGS__)
 
-#define _analyser_error(__fmt, ...)\
-        _analyser_error_print(__fmt, ##__VA_ARGS__)
-#define _analyser_error_recoverable(__fmt, ...)\
-        _analyser_error_print(__fmt, ##__VA_ARGS__)
-#define _analyser_warning(__fmt, ...)\
-        _analyser_error_print(__fmt, ##__VA_ARGS__)
+// This throws errors
+#define _analyser_error(...)\
+        { _analyser_log(FLUFF_LOG_TYPE_ERROR, __VA_ARGS__); self->result = FLUFF_FAILURE; }
+
+// This throws recoverable errors
+#define _analyser_error_recoverable(...)\
+        { _analyser_log(FLUFF_LOG_TYPE_ERROR, __VA_ARGS__); self->result = FLUFF_MAYBE_FAILURE; }
+
+// This throws warnings
+#define _analyser_warning(...)\
+        { _analyser_log(FLUFF_LOG_TYPE_WARN, __VA_ARGS__); }
+
+// This expects a token
 #define _analyser_expect(__idx, ...) {\
             const TokenCategory __c[] = { __VA_ARGS__ };\
             _analyser_expect_n(self, __idx, __c, FLUFF_LENOF(__c), __LINE__, __func__);\
         }
+
+// This makes the function fail and return
+#define _analyser_failure()\
+        POP_STATE(); return NULL;
+
+// This checks the current result and fails depending on it
+#define _analyser_check(__node, ...)\
+        if (self->result != FLUFF_OK) { __VA_ARGS__; _free_ast_node(__node); _analyser_failure(); }
 
 #define TOKEN_FMT(__index)\
         _lexer_token_string_len(self->lexer, __index), _lexer_token_string(self->lexer, __index)
@@ -133,18 +149,30 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 #define POP_STATE()  self->state = prev_state;
 
 // TODO: make AST_TYPED_LABEL
-// TODO: make sure nodes are cleared up on error
+// TODO: make sure certain types of nodes don't always accept NULL nodes to append
 FLUFF_PRIVATE_API FluffResult _analyser_read(Analyser * self) {
+    // Checkes if there is no nodes to look for
     if (self->lexer->token_count == 0) return FLUFF_OK;
-    self->token        = * self->lexer->tokens;
+
+    // Initializes the first token
+    self->token = * self->lexer->tokens;
+    self->index = 0;
+
+    // Default result
+    self->result = FLUFF_OK;
+
+    // Scopes requires an expect, there is no '{}' so we just use EOF instead
     self->state.expect = TOKEN_EOF;
+
+    // Reads the current scope and checkes for any errors
+    // In case there isn't any, it will simply not append anything and return the result
     ASTNode * node = _analyser_read_scope(self);
-    if (!node) return FLUFF_FAILURE;
     _ast_node_append_child(&self->ast->root, node);
-    return FLUFF_OK;
+    return self->result;
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
+    // Checkes if we are out of bounds before reading
     if (!_analyser_is_within_bounds(self)) return NULL;
     PUSH_STATE();
 
@@ -160,55 +188,78 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
         case TOKEN_CATEGORY_OPERATOR_ARROW:
         case TOKEN_CATEGORY_OPERATOR_DOT:
         case TOKEN_CATEGORY_OPERATOR_ELLIPSIS:
-        case TOKEN_CATEGORY_FUNC_DECL:
-            { node = _analyser_read_expr(self, TOKEN_END); break; }
-        case TOKEN_CATEGORY_IF:
-            { node = _analyser_read_if(self); break; }
-        case TOKEN_CATEGORY_FOR:
-            { node = _analyser_read_for(self); break; }
-        case TOKEN_CATEGORY_WHILE:
-            { node = _analyser_read_while(self); break; }
-        case TOKEN_CATEGORY_DECL:
-            { node = _analyser_read_decl(self); break; }
-        case TOKEN_CATEGORY_CLASS_DECL:
-            { node = _analyser_read_class(self); break; }
+        case TOKEN_CATEGORY_FUNC_DECL: {
+            // Operands
+            node = _analyser_read_expr(self, TOKEN_END);
+            break;
+        }
+        case TOKEN_CATEGORY_IF: {
+            // If statements
+            node = _analyser_read_if(self);
+            break;
+        }
+        case TOKEN_CATEGORY_FOR: {
+            // For loops
+            node = _analyser_read_for(self);
+            break;
+        }
+        case TOKEN_CATEGORY_WHILE: {
+            // While loops
+            node = _analyser_read_while(self);
+            break;
+        }
+        case TOKEN_CATEGORY_DECL: {
+            // Declarations (let, const)
+            node = _analyser_read_decl(self);
+            break;
+        }
+        case TOKEN_CATEGORY_CLASS_DECL: {
+            // Class declarations
+            node = _analyser_read_class(self);
+            break;
+        }
         case TOKEN_CATEGORY_LBRACE: {
+            // Left brace
             self->state.expect = TOKEN_RBRACE;
             _analyser_consume(self, 1);
             node = _analyser_read_scope(self);
             break;
         }
-        case TOKEN_CATEGORY_CONTROL_KEYWORD:
-            { node = _analyser_read_control(self); break; }
-        case TOKEN_CATEGORY_END:
-            { break; }
+        case TOKEN_CATEGORY_CONTROL_KEYWORD: {
+            // Any control keyword, like 'return', 'break' or 'continue'
+            node = _analyser_read_control(self);
+            break;
+        }
+        case TOKEN_CATEGORY_END: {
+            // Does nothing, it's ';' after all
+            break;
+        }
         case TOKEN_CATEGORY_RPAREN:
         case TOKEN_CATEGORY_RBRACE:
         case TOKEN_CATEGORY_RBRACKET: { 
+            // If any of these are found, then there is an extraneous token
             _analyser_error("extraneous %s '%.*s'", 
                 _token_category_string(category), TOKEN_FMT(self->index)
             );
-            POP_STATE();
-            return NULL;
+            _analyser_failure();
         }
         case TOKEN_CATEGORY_ELSE: {
+            // You can't have an else statement without an if statement, duh
             _analyser_error("'else' statement out of 'if' statement");
-            POP_STATE();
-            return NULL;
+            _analyser_failure();
         }
         default: {
+            // If none of these tokens are valid then it will throw an error
             _analyser_error("unexpected token '%.*s'", TOKEN_FMT(self->index));
-            POP_STATE();
-            return NULL;
+            _analyser_failure();
         }
     }
 
-    if (category != TOKEN_CATEGORY_END) {
-        if (!node) {
-            _analyser_error("ast node returned null");
-        } else if (self->state.last_scope) {
-            _ast_node_append_child(self->state.last_scope, node);
-        }
+    _analyser_check(node);
+
+    // Remember, end statements return NULL!
+    if (category != TOKEN_CATEGORY_END && self->result == FLUFF_OK) {
+        _ast_node_append_child(self->state.last_scope, node);
     }
 
     POP_STATE();
@@ -219,13 +270,24 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_scope(Analyser * self) {
     PUSH_STATE();
 
     ASTNode * node = _new_ast_node(self->ast, AST_NODE_SCOPE, self->position);
+    
+    // TODO: don't create a new scope in case we are appending to root
+    // Sets the latest scope to the current node
     self->state.last_scope = node;
     while (_analyser_is_within_bounds(self)) {
+        // If the current token is the expected token, stop immediately
         if (self->token.type == self->state.expect) break;
+        
+        // Reads the current token, if there was any errors, stop immediately
         _analyser_read_token(self);
+        _analyser_check(node);
+
+        // Consumes 1 for the next token
         _analyser_consume(self, 1);
     }
+    // We expect it to only break on the expected token, if not then it's certainly EOF
     _analyser_expect(self->index, _token_type_get_category(self->state.expect));
+    _analyser_check(node);
 
     POP_STATE();
     return node;
@@ -233,20 +295,41 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_scope(Analyser * self) {
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_if(Analyser * self) {
     PUSH_STATE();
+
+    // Makes sure that the nodes do not append to the last scope
     self->state.last_scope = NULL;
 
     ASTNode * node = _new_ast_node(self->ast, AST_NODE_IF, self->position);
+
+    // Checkes for the next token, which should be an expression
+    // No _analyser_expect() because _analyser_read_expr() already expects for us
     _analyser_consume(self, 1);
     _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_LBRACE));
+    _analyser_check(node);
 
+    // Checkes for the next token, which should be an open brace
+    _analyser_expect(self->index + 1, TOKEN_CATEGORY_LBRACE);
+    _analyser_check(node);
+
+    // In case it is, consume out of the expression and the left brace
+    // If we parse the left brace too, this will create 2 scopes unnecessarily
     _analyser_consume(self, 2);
     self->state.expect = TOKEN_RBRACE;
     _ast_node_append_child(node, _analyser_read_scope(self));
+    _analyser_check(node);
 
+    // Checkes for the next token, which can be an else statement
     if (_analyser_peek(self, 1).type == TOKEN_ELSE) {
         _analyser_consume(self, 2);
+        
+        // If the token is matched, then it will append and check it normally
+        // If the token is unmatched, then it will fallthrough and return an error
         _analyser_expect(self->index, TOKEN_CATEGORY_IF, TOKEN_CATEGORY_LBRACE);
-        _ast_node_append_child(node, _analyser_read_token(self));
+        _analyser_check(node);
+        if (self->result == FLUFF_OK) {
+            _ast_node_append_child(node, _analyser_read_token(self));
+            _analyser_check(node);
+        }
     }
     
     POP_STATE();
@@ -254,20 +337,34 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_if(Analyser * self) {
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_for(Analyser * self) {
-    return NULL;
+    // TODO: this
+    PUSH_STATE();
+    _analyser_failure();
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_while(Analyser * self) {
     PUSH_STATE();
+
+    // Makes sure the nodes don't get appended to the last scope
     self->state.last_scope = NULL;
 
     ASTNode * node = _new_ast_node(self->ast, AST_NODE_WHILE, self->position);
+    
+    // Checkes for the next token, which should be an expression
     _analyser_consume(self, 1);
     _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_LBRACE));
+    _analyser_check(node);
 
+    // Checkes for the next token, which should be an open brace
+    _analyser_expect(self->index + 1, TOKEN_CATEGORY_LBRACE);
+    _analyser_check(node);
+
+    // In case it is, consume out of the expression and the left brace
+    // If we parse the left brace too, this will create 2 scopes unnecessarily
     _analyser_consume(self, 2);
     self->state.expect = TOKEN_RBRACE;
     _ast_node_append_child(node, _analyser_read_scope(self));
+    _analyser_check(node);
     
     POP_STATE();
     return node;
@@ -277,17 +374,33 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_decl(Analyser * self) {
     PUSH_STATE();
 
     ASTNode * node = _new_ast_node(self->ast, AST_NODE_DECLARATION, self->position);
+    
+    // Checkes if the token is "let" or "const", since "const" is radically different than "let"
     node->data.decl.is_constant = (self->token.type == TOKEN_CONST);
+
+    // Checkes if the token is a label, because we need to append to one, duh
     _analyser_consume(self, 1);
     _analyser_expect(self->index, TOKEN_CATEGORY_LABEL);
+    _analyser_check(node);
 
-    if (_analyser_peek(self, 1).type == TOKEN_END)
-        _analyser_error("cannot declare a variable without implying or specifying it's type");
+    // Checkes if the next token ends the expression
+    if (_analyser_peek(self, 1).type == TOKEN_END) {
+        // TODO: check if this will only throw a warning
+        _analyser_warning("cannot declare a variable without implying or specifying it's type");
+    } else {
+        // Checkes if there is any type declaration after the label
+        self->state.in_decl = (_analyser_peek(self, 1).type == TOKEN_COLON);
+        _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_END));
+        _analyser_check(node);
+        if (self->state.in_decl) {
+            // The type is considered an extra return and is appended AFTER the expression
+            _ast_node_append_child(node, self->extra_return);
+            self->extra_return = NULL;
+        }
+    }
 
-    self->state.in_decl = (_analyser_peek(self, 1).type == TOKEN_COLON);
-    _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_END));
-    _ast_node_append_child(node, self->extra_return);
-    self->extra_return = NULL;
+    // TODO: maybe checking twice is a bad idea?
+    _analyser_check(node);
 
     POP_STATE();
     return node;
@@ -298,51 +411,97 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self) {
 
     ASTNode * node = _new_ast_node(self->ast, AST_NODE_FUNCTION, self->position);
 
+    // Checkes if the next token is either a label or a left parenthesis
     _analyser_consume(self, 1);
     _analyser_expect(self->index, TOKEN_CATEGORY_LABEL, TOKEN_CATEGORY_LPAREN);
+    _analyser_check(node);
+
     if (self->token.type == TOKEN_LABEL_LITERAL) {
         if (self->state.in_expr)
             _analyser_error("cannot declare a named function within an expression");
+
+        // In case it's a label, append it to the current node as the function's name
         _ast_node_append_child(node, TOKEN_TO_STRING_NODE());
+        _analyser_check(node);
         _analyser_consume(self, 1);
+
+        // TODO: functions with names should be considered as anonymous outside of classes
+        //       and the global scope
     }
+
     _analyser_expect(self->index, TOKEN_CATEGORY_LPAREN);
+    _analyser_check(node);
     
-    self->state.in_call = true;
+    // In case the function has arguments
     if (_analyser_peek(self, 1).type != TOKEN_RPAREN) {
+        // Makes sure the type parser knows we are inside a call type
+        self->state.in_call = true;
         while (_analyser_is_within_bounds(self)) {
-            if (self->token.type == TOKEN_RPAREN || self->token.type == self->state.expect) break;
+            // Checkes if the function has ended
+            if (self->token.type == TOKEN_RPAREN || self->token.type == self->state.expect)
+                break;
             _analyser_consume(self, 1);
+
+            // Checkes if we have a label, this will be the argument name
+            // If yes, append it to the function node 
+            _analyser_expect(self->index + 1, TOKEN_LABEL_LITERAL);
+            _analyser_check(node);
+
             _ast_node_append_child(node, TOKEN_TO_STRING_NODE());
+            _analyser_check(node);
+
             _analyser_consume(self, 1);
+
+            // Checkes if we have a colon
+            // If yes, we found a type
             if (self->token.type == TOKEN_COLON) {
                 _analyser_consume(self, 1);
                 _ast_node_append_child(node, _analyser_read_type(self, self->state.expect));
+                _analyser_check(node);
             }
+
+            // Checkes if we found the argument end or the function end
             _analyser_expect(self->index, 
                 TOKEN_CATEGORY_OPERATOR_COMMA, TOKEN_CATEGORY_RPAREN
             );
+            _analyser_check(node);
         }
-    } else _analyser_consume(self, 1);
+        // Toggles the call flag off
+        self->state.in_call = false;
+    } else {
+        _analyser_consume(self, 1);
+    }
+
+    // Checkes if we found the function parameters end
     _analyser_expect(self->index, TOKEN_CATEGORY_RPAREN);
+    _analyser_check(node);
+
+    // Checkes if the next node is an arrow, that is our function return type
     _analyser_consume(self, 1);
-    self->state.in_call = false;
     if (self->token.type == TOKEN_ARROW) {
         _analyser_consume(self, 1);
         _ast_node_append_child(node, _analyser_read_type(self, self->state.expect));
+        _analyser_check(node);
     }
 
+    // TODO: classes don't need well-defined functions 
+    // Checkes if there is a function scope
     _analyser_expect(self->index, TOKEN_CATEGORY_LBRACE);
+    _analyser_check(node);
+
     _analyser_consume(self, 1);
     self->state.expect = TOKEN_RBRACE;
     _ast_node_append_child(node, _analyser_read_scope(self));
+    _analyser_check(node);
 
     POP_STATE();
     return node;
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_class(Analyser * self) {
-    return NULL;
+    // TODO: this
+    PUSH_STATE();
+    _analyser_failure();
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expect) {
@@ -351,11 +510,19 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
     bool had_error = false;
 
     ASTNode * node = _new_ast_node(self->ast, AST_NODE_TYPE, self->position);
-    if (self->token.type == TOKEN_END) _analyser_error("missing type");
+
+    // Checkes if we actually have a type
+    if (self->token.type == TOKEN_END) {
+        _analyser_error("missing type");
+        _analyser_check(node);
+    }
+
+    // Checkes if the type expression ended
     if (self->token.type == expect) {
         self->state = prev_state;
         return node;
     }
+
     // TODO: let the tokens decide between consuming at the end instead of just rewinding it
     switch (self->token.type) {
         case TOKEN_VOID: {
@@ -385,19 +552,24 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
         case TOKEN_LABEL_LITERAL: {
             node->data.type = AST_TYPE_CLASS;
             _ast_node_append_child(node, TOKEN_TO_STRING_NODE());
+            _analyser_check(node);
             break;
         }
         case TOKEN_LBRACKET: {
             _analyser_consume(self, 1);
             node->data.type = AST_TYPE_ARRAY;
-            if (_analyser_peek(self, 1).type != TOKEN_RBRACKET)
+            if (_analyser_peek(self, 1).type != TOKEN_RBRACKET) {
                 _ast_node_append_child(node, _analyser_read_type(self, expect));
+                _analyser_check(node);
+            }
             _analyser_expect(self->index, TOKEN_CATEGORY_RBRACKET);
+            _analyser_check(node);
             break;
         }
         case TOKEN_FUNC: {
             _analyser_consume(self, 1);
             _analyser_expect(self->index, TOKEN_CATEGORY_LPAREN);
+            _analyser_check(node);
             node->data.type = AST_TYPE_FUNC;
             
             self->state.in_call = true;
@@ -405,17 +577,27 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
                 while (_analyser_is_within_bounds(self)) {
                     if (self->token.type == TOKEN_RPAREN || self->token.type == expect) break;
                     _analyser_consume(self, 1);
+
                     _ast_node_append_child(node, _analyser_read_type(self, expect));
+                    _analyser_check(node);
+
                     _analyser_expect(self->index, 
                         TOKEN_CATEGORY_OPERATOR_COMMA, TOKEN_CATEGORY_RPAREN
                     );
+                    _analyser_check(node);
                 }
-            } else _analyser_consume(self, 1);
+            } else {
+                _analyser_consume(self, 1);
+            }
+
             _analyser_expect(self->index, TOKEN_CATEGORY_RPAREN);
+            _analyser_check(node);
+
             self->state.in_call = false;
             if (_analyser_peek(self, 1).type == TOKEN_ARROW) {
                 _analyser_consume(self, 2);
                 _ast_node_append_child(node, _analyser_read_type(self, expect));
+                _analyser_check(node);
                 _analyser_rewind(self, 1);
             }
             break;
@@ -429,11 +611,13 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_type(Analyser * self, TokenType expec
             break;
         }
     }
-    if (had_error)
+    if (had_error) {
         _analyser_error("expected type, got %s '%.*s'", 
             _token_category_string(_token_type_get_category(self->token.type)), 
             TOKEN_FMT(self->index)
         );
+        _analyser_check(node);
+    }
 
     _analyser_consume(self, 1);
 
@@ -474,16 +658,19 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr(Analyser * self, TokenType expec
     self->state.in_call = false;
     self->state.expect  = expect;
     ASTNode * node = _analyser_read_expr_pratt(self, 0);
+    _analyser_check(node);
     if (!node) _analyser_error("pratt parser returned null");
     POP_STATE();
     return node;
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit) {
-    if (!_analyser_is_within_bounds(self))
-        _analyser_error("expected expression, got EOF");
-
     PUSH_STATE();
+
+    if (!_analyser_is_within_bounds(self)) {
+        _analyser_error("expected expression, got EOF");
+        _analyser_failure();
+    }
 
     self->state.in_decl    = false;
     self->state.last_scope = NULL;
@@ -495,21 +682,28 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         case TOKEN_CATEGORY_LABEL: {
             // Operand
             lhs = _new_ast_node_from_token(self->lexer, self->index, self->ast, self->position);
+            _analyser_check(lhs);
             break;
         }
         case TOKEN_CATEGORY_FUNC_DECL: {
             // Function declaration
             lhs = _analyser_read_func(self);
+            _analyser_check(lhs);
             break;
         }
         case TOKEN_CATEGORY_LPAREN: {
             // Parenthesis
             _analyser_consume(self, 1);
+
             PUSH_STATE();
             self->state.expect = TOKEN_RPAREN;
             lhs = _analyser_read_expr_pratt(self, 0);
+            _analyser_check(lhs);
+
             _analyser_consume(self, 1);
             _analyser_expect(self->index, TOKEN_CATEGORY_RPAREN);
+            _analyser_check(lhs);
+
             POP_STATE();
             if (self->state.in_call) return lhs;
             break;
@@ -517,42 +711,60 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         case TOKEN_CATEGORY_OPERATOR: {
             // Unary operator
             TokenType op_type = self->token.type;
-            if (token_info[op_type].unary_op == AST_OPERATOR_NONE)
+            if (token_info[op_type].unary_op == AST_OPERATOR_NONE) {
                 _analyser_error("operator '%.*s' is not unary", TOKEN_FMT(self->index));
+                _analyser_check(lhs);
+            }
             _analyser_consume(self, 1);
-            ASTNode * node = _analyser_read_expr_pratt(self, token_info[op_type].prefix_prec);
-            if (!node) _analyser_error("pratt parser returned null");
+
+            ASTNode * rhs = _analyser_read_expr_pratt(self, token_info[op_type].prefix_prec);
+            _analyser_check(rhs, _free_ast_node(lhs));
+
             lhs = _new_ast_node_unary_operator(self->ast, 
                 token_info[op_type].unary_op, 
-                node, self->position
+                rhs, self->position
             );
+            _analyser_check(lhs);
             break;
         }
-        default: _analyser_error("expected expression, got %s '%.*s'", 
-            _token_category_string(category), TOKEN_FMT(self->index)
-        );
+        default: {
+            _analyser_error("expected expression, got %s '%.*s'", 
+                _token_category_string(category), TOKEN_FMT(self->index)
+            );
+            _analyser_check(lhs);
+        }
     }
 
     self->state.in_expr = true;
 
     if (prev_state.in_decl) {
         _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON, TOKEN_CATEGORY_RPAREN);
+        _analyser_check(lhs);
+
         _analyser_consume(self, 1);
-        if (self->token.type == TOKEN_RPAREN && !prev_state.in_call)
+        if (self->token.type == TOKEN_RPAREN && !prev_state.in_call) {
             _analyser_error("unexpected %s '%.*s' in type declaration", 
                 _token_category_string(_token_type_get_category(self->token.type)), TOKEN_FMT(self->index)
             );
+            _analyser_check(lhs);
+        }
         _analyser_consume(self, 1);
+
         self->extra_return = _analyser_read_type(self, TOKEN_EQUAL);
+        _analyser_check(self->extra_return, _free_ast_node(lhs));
         _analyser_rewind(self, 1);
     }
 
     while (!_analyser_is_expr_end(self)) {
+        // Checks if everything is OK before parsing
+        _analyser_check(lhs);
+
         TokenType type = _analyser_peek(self, 1).type;
         _analyser_expect(self->index + 1, 
             TOKEN_CATEGORY_OPERATOR, TOKEN_CATEGORY_OPERATOR_DOT, TOKEN_CATEGORY_OPERATOR_COMMA, 
             TOKEN_CATEGORY_END, _token_type_get_category(self->state.expect), TOKEN_CATEGORY_LPAREN
         );
+        _analyser_check(lhs);
         if (type == self->state.expect) break;
 
         int prec = token_info[type].infix_prec;
@@ -561,14 +773,15 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         if (type == TOKEN_LPAREN) {
             _analyser_consume(self, 1);
             lhs = _analyser_read_expr_call(self, lhs);
-            printf("outside call %zu\n", self->state.call_depth);
-            if (!lhs) _analyser_error("pratt parser returned null");
+            _analyser_check(lhs);
             continue;
         }
         if (type == TOKEN_COMMA) {
-            printf("comma found, %d, %zu\n", self->state.in_call, self->state.call_depth);
-            if (!self->state.in_call)
-                _analyser_error("comma outside of function call, function/class declaration or array");
+            if (!self->state.in_call) {
+                _analyser_error_recoverable(
+                    "comma outside of function call, function/class declaration or array"
+                );
+            }
             ++self->state.comma_count;
         }
 
@@ -576,7 +789,8 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
 
         _analyser_consume(self, 2);
         ASTNode * rhs = _analyser_read_expr_pratt(self, prec);
-        if (!rhs) _analyser_error("pratt parser returned null");
+        _analyser_check(rhs, _free_ast_node(lhs));
+
         if (token_info[type].right_associative)
             lhs = _new_ast_node_operator(self->ast, token_info[type].op, rhs, lhs, sect);
         else
@@ -591,7 +805,6 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * top) {
     PUSH_STATE();
 
-    printf("in call %zu\n", self->state.call_depth);
     self->state.in_call = true;
     ASTNode * node = _new_ast_node_call(top->ast, top, self->state.comma_count + 1, self->position);
     if (_analyser_peek(self, 1).type != TOKEN_RPAREN) {
@@ -603,6 +816,9 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * 
 }
 
 FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, size_t idx, const TokenCategory * categories, size_t count, int line, const char * func) {
+    // TODO: this looks like garbage but works perfectly so maybe fix it idk
+    // TODO: pretend the current token is the expected one so we can be more resilient on parsing
+
     TokenCategory category = TOKEN_CATEGORY_EOF;
 
     if (idx < self->lexer->token_count)
@@ -634,12 +850,12 @@ FLUFF_PRIVATE_API bool _analyser_expect_n(Analyser * self, size_t idx, const Tok
         j += lens[i];
     }
     if (idx >= self->lexer->token_count)
-        _analyser_error_print_d(line, func, "expected %.*s; got EOF", (int)len, buf);
+        _analyser_log_d(FLUFF_LOG_TYPE_ERROR, line, func, "expected %.*s; got EOF", (int)len, buf);
     else
-        _analyser_error_print_d(line, func, "expected %.*s; got %s '%.*s'", 
+        _analyser_log_d(FLUFF_LOG_TYPE_ERROR, line, func, "expected %.*s; got %s '%.*s'", 
             (int)len, buf, _token_category_string(category), TOKEN_FMT(idx)
         );
-    // TODO: this looks like garbage but works perfectly so maybe fix it idk
+    self->result = FLUFF_FAILURE;
     return false;
 }
 
