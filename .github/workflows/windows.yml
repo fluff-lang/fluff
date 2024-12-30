@@ -34,6 +34,8 @@ jobs:
       
       - name: Configure CMake
         run: >
+          mkdir ${{ steps.strings.outputs.build_output }} &&
+          cd ${{ steps.strings.outputs.build_output }} &&
           cmake -B ${{ steps.strings.outputs.build_output }}
           -DCMAKE_C_COMPILER=${{ matrix.compiler }}
           -DCMAKE_BUILD_TYPE=Release
@@ -41,7 +43,6 @@ jobs:
 
       - name: Build
         run: |
-          mkdir ${{ steps.strings.outputs.build_output }} &&
           cd ${{ steps.strings.outputs.build_output }} &&
           cmake --build . --config Release
 
