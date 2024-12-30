@@ -18,7 +18,7 @@ jobs:
         shell: msys2 {0}
     steps:
       - uses: actions/checkout@master
-      
+
       - name: Setup MSYS2 (Windows only)
         uses: msys2/setup-msys2@v2
         with:
@@ -30,7 +30,7 @@ jobs:
       - name: Setup reusable strings
         id: strings
         run: |
-          echo "build_output=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          echo "build_output=${{ github.workspace }}\build" >> "$GITHUB_OUTPUT"
       
       - name: Configure CMake
         run: >
