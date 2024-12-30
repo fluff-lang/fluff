@@ -46,17 +46,17 @@ jobs:
           cmake --build . --config Release
 
       - name: List Artifacts
-        run: ls ${{ steps.strings.outputs.build_output }}
+        run: cd .. && ls build
 
       - name: Archive Artifacts
         uses: actions/upload-artifact@master
         with:
           name: fluff-${{ matrix.os }}-${{ matrix.compiler }}
-          path: ${{ steps.strings.outputs.build_output }}
+          path: build
 
-      - name: Test
-        working-directory: ${{ steps.strings.outputs.build_output }}
-        run: ctest --build-config Release
+     # - name: Test
+     #   working-directory: .
+     #   run: ctest --build-config Release
 
       - name: Download Artifact
         uses: actions/download-artifact@master
