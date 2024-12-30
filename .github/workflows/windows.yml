@@ -46,7 +46,7 @@ jobs:
           cmake --build . --config Release
 
       - name: List Artifacts
-        run: ls ${{ steps.strings.outputs.build_output }}
+        run: ls ${{ steps.strings.outputs.build_output }} && ls .
 
       - name: Archive Artifacts
         uses: actions/upload-artifact@master
