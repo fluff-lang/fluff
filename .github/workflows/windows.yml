@@ -50,8 +50,7 @@ jobs:
 
       - name: List Artifacts
         run: |
-          7z a ${{ steps.strings.outputs.build_output }}.zip fluff-${{ matrix.os }}-${{ matrix.compiler }}
-          ls
+          7z a fluff-${{ matrix.os }}-${{ matrix.compiler }} ${{ steps.strings.outputs.build_output }}.zip
 
       - name: Archive Artifacts
         uses: actions/upload-artifact@master
