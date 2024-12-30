@@ -24,7 +24,7 @@ jobs:
         with:
           msystem: mingw64
           update: true
-          install: git gcc make cmake 7z
+          install: git gcc make cmake mingw-w64-7zip
 
       - name: Setup reusable strings
         id: strings
