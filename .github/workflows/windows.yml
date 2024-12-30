@@ -36,7 +36,7 @@ jobs:
         run: >
           mkdir ${{ steps.strings.outputs.build_output }} &&
           cd ${{ steps.strings.outputs.build_output }} &&
-          cmake -B ${{ steps.strings.outputs.build_output }}
+          cmake -B .
           -DCMAKE_C_COMPILER=${{ matrix.compiler }}
           -DCMAKE_BUILD_TYPE=Release
           -S ${{ github.workspace }}
