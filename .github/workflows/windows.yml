@@ -40,7 +40,10 @@ jobs:
           -S ${{ github.workspace }}
 
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build_output }} --config Release
+        run: |
+          mkdir ${{ steps.strings.outputs.build_output }} &&
+          cd ${{ steps.strings.outputs.build_output }} &&
+          cmake --build . --config Release
 
       - name: List Artifacts
         run: ls ${{ steps.strings.outputs.build_output }}
