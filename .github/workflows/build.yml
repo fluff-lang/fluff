@@ -10,52 +10,61 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        build_type: [Release]
-        c_compiler: [gcc, clang]
+        # TODO: maybe NOT assuming everyone is on 64-bit
         include:
-          - os: ubuntu-latest
-            c_compiler: gcc
-          - os: ubuntu-latest
-            c_compiler: clang
-          - os: macos-latest
-            c_compiler: gcc
-          - os: macos-latest
-            c_compiler: clang
+          - { os: ubuntu-latest,  compiler: gcc       }
+          - { os: ubuntu-latest,  compiler: clang     }
+          - { os: macos-latest,   compiler: gcc       }
+          - { os: macos-latest,   compiler: clang     }
+          - { os: windows-latest, compiler: mingw-w64 }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@master
 
-      - name: Set reusable strings
+      - name: Setup reusable strings
         id: strings
         shell: bash
         run: |
-          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          echo "build_output=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+      - name: Setup MSYS2 (Windows only)
+        uses: msys2/setup-msys2@master
+        shell: msys2 {0}
+        with:
+          msystem: mingw64
+          update: true
+          install: mingw-w64-winpthreads-git
+          pacboy: |
+            git:p
+            gcc:p
+            cmake:p
+        if: |
+          matrix.os == windows-latest
       
       - name: Configure CMake
         run: >
-          cmake -B ${{ steps.strings.outputs.build-output-dir }}
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          cmake -B ${{ steps.strings.outputs.build_output }}
+          -DCMAKE_C_COMPILER=${{ matrix.compile }}
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }}
-      
+
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+        run: cmake --build ${{ steps.strings.outputs.build_output }} --config ${{ matrix.build_type }}
 
       - name: List Artifacts
-        run: ls ${{ steps.strings.outputs.build-output-dir }}
+        run: ls ${{ steps.strings.outputs.build_output }}
 
       - name: Archive Artifacts
-        uses: actions/upload-artifact@v4.5.0
+        uses: actions/upload-artifact@master
         with:
-          name: fluff-${{ matrix.os }}-${{ matrix.c_compiler }}
-          path: ${{ steps.strings.outputs.build-output-dir }}
+          name: fluff-${{ matrix.os }}-${{ matrix.compile }}
+          path: ${{ steps.strings.outputs.build_output }}
 
       - name: Test
-        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        working-directory: ${{ steps.strings.outputs.build_output }}
         run: ctest --build-config ${{ matrix.build_type }}
 
       - name: Download Artifact
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@master
         with:
-          name: fluff-${{ matrix.os }}-${{ matrix.c_compiler }}
-          path: ${{ steps.strings.outputs.build-output-dir }}
+          name: fluff-${{ matrix.os }}-${{ matrix.compile }}
+          path: ${{ steps.strings.outputs.build_output }}
