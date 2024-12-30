@@ -12,7 +12,7 @@ jobs:
       matrix:
         # TODO: maybe NOT assuming everyone is on 64-bit
         include:
-          - { os: windows-latest, compiler: mingw-w64 }
+          - { os: windows-latest, compiler: gcc }
     defaults:
       run:
         shell: msys2 {0}
