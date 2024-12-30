@@ -12,22 +12,13 @@ jobs:
       matrix:
         # TODO: maybe NOT assuming everyone is on 64-bit
         include:
-          - { os: ubuntu-latest,  compiler: gcc   }
-          - { os: ubuntu-latest,  compiler: clang }
-          - { os: macos-latest,   compiler: gcc   }
-          - { os: macos-latest,   compiler: clang }
           - { os: windows-latest, compiler: mingw-w64 }
     defaults:
       run:
         shell: msys2 {0}
     steps:
       - uses: actions/checkout@master
-
-      - name: Setup reusable strings
-        id: strings
-        run: |
-          echo "build_output=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
+      
       - name: Setup MSYS2 (Windows only)
         uses: msys2/setup-msys2@v2
         with:
@@ -35,6 +26,11 @@ jobs:
           update: true
           install: git gcc cmake
         if: matrix.compiler == 'mingw-w64'
+
+      - name: Setup reusable strings
+        id: strings
+        run: |
+          echo "build_output=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
       
       - name: Configure CMake
         run: >
