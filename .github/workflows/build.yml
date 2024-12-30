@@ -31,10 +31,7 @@ jobs:
         with:
           msystem: mingw64
           update: true
-          pacboy: |
-            git:p
-            gcc:p
-            cmake:p
+          install: git gcc cmake
         if: matrix.compiler == 'mingw-w64'
       
       - name: Configure CMake
