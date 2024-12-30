@@ -39,7 +39,7 @@ jobs:
           cmake -B .
           -DCMAKE_C_COMPILER=${{ matrix.compiler }}
           -DCMAKE_BUILD_TYPE=Release
-          -S ${{ github.workspace }}
+          -S ..
 
       - name: Build
         run: |
