@@ -27,9 +27,10 @@ jobs:
           install: git gcc make cmake p7zip
 
       - name: Setup reusable strings
+        shell: cmd
         id: strings
         run: |
-          echo "build_output=${{ github.workspace }}\build\" >> "$GITHUB_OUTPUT"
+          echo "build_output=${{ github.workspace }}\\build\\" >> "$GITHUB_OUTPUT"
       
       - name: Configure CMake
         run: >
