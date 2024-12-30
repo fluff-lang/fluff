@@ -29,7 +29,7 @@ jobs:
       - name: Setup reusable strings
         id: strings
         run: |
-          echo "build_output='${{ github.workspace }}\build'" >> "$GITHUB_OUTPUT"
+          echo "build_output='${{ github.workspace }}\build\'" >> "$GITHUB_OUTPUT"
       
       - name: Configure CMake
         run: >
@@ -46,13 +46,13 @@ jobs:
           cmake --build . --config Release
 
       - name: List Artifacts
-        run: cd .. && ls build
+        run: ls ${{ steps.strings.outputs.build_output }}
 
       - name: Archive Artifacts
         uses: actions/upload-artifact@master
         with:
           name: fluff-${{ matrix.os }}-${{ matrix.compiler }}
-          path: build
+          path: ${{ steps.strings.outputs.build_output }}
 
      # - name: Test
      #   working-directory: .
