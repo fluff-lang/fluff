@@ -26,22 +26,19 @@
             .debug_file = __dfile,\
             .debug_func = __dfunc,\
             .debug_line = __dline,\
-        }, __VA_ARGS__);
+        }, __VA_ARGS__)
 
-#define fluff_push_log(__type, __file, __line, __column, ...)\
-        fluff_logger_push((FluffLog){\
-            .type = __type,\
-            .file = __file,\
-            .line = __line,\
-            .column = __column,\
-            .debug_file = __FILE__,\
-            .debug_func = __func__,\
-            .debug_line = __LINE__,\
-        }, __VA_ARGS__);
+#ifdef FLUFF_DEBUG
+#   define fluff_push_log(__type, __file, __line, __column, ...)\
+           fluff_push_log_d(__type, __file, __line, __column, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#else
+#   define fluff_push_log(__type, __file, __line, __column, ...)\
+           fluff_push_log_d(__type, __file, __line, __column, NULL, NULL, 0, __VA_ARGS__)
+#endif
 
-#define fluff_push_note(...)  fluff_push_log(LOG_TYPE_NOTE, NULL, 0, 0, __VA_ARGS__);
-#define fluff_push_warn(...)  fluff_push_log(LOG_TYPE_WARN, NULL, 0, 0, __VA_ARGS__);
-#define fluff_push_error(...) fluff_push_log(LOG_TYPE_ERROR, NULL, 0, 0, __VA_ARGS__);
+#define fluff_push_note(...)  fluff_push_log(LOG_TYPE_NOTE, NULL, 0, 0, __VA_ARGS__)
+#define fluff_push_warn(...)  fluff_push_log(LOG_TYPE_WARN, NULL, 0, 0, __VA_ARGS__)
+#define fluff_push_error(...) fluff_push_log(LOG_TYPE_ERROR, NULL, 0, 0, __VA_ARGS__)
 
 /* -========
      Log

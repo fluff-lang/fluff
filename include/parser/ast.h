@@ -145,12 +145,13 @@ typedef struct ASTNode {
     ASTNode * sibling;
     ASTNode * child;
     ASTNode * last_child;
-    size_t    index;
 
     ASTNodeType type;
     ASTNodeData data;
 
     TextSect loc;
+    
+    size_t index;
 
     uint8_t  flags;
     uint64_t hash;

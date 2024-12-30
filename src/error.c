@@ -41,7 +41,7 @@ FLUFF_API void fluff_log_print(FluffLog * self) {
     FormatCallback fn = (self->type < FLUFF_LOG_TYPE_WARN ? fluff_write_fmt : fluff_error_fmt);
 
     if (self->debug_file)
-        fn("[%s:%s():%d] ", self->debug_file, self->debug_func, self->debug_line);
+        fn("[%s:%d at %s()]:\n\t-> ", self->debug_file, self->debug_line, self->debug_func);
     if (self->file)
         fn("%s:", self->file);
     if (self->line)
@@ -105,7 +105,7 @@ FLUFF_API void fluff_logger_push_v(FluffLog log, const char * restrict fmt, va_l
     log.msg     = msg;
     log.msg_len = len;
 
-    global_log_buffer[global_log_size++] = log;
+    global_log_buffer[global_log_count++] = log;
 }
 
 FLUFF_API void fluff_logger_push(FluffLog log, const char * restrict fmt, ...) {
@@ -117,11 +117,13 @@ FLUFF_API void fluff_logger_push(FluffLog log, const char * restrict fmt, ...) {
 
 FLUFF_API void fluff_logger_print() {
     FluffLog * ptr = global_log_buffer;
-    while (ptr != &global_log_buffer[global_log_size])
+    while (ptr != &global_log_buffer[global_log_count])
         fluff_log_print(ptr++);
 }
 
 FLUFF_API void fluff_logger_clear() {
+    global_log_count     = 0;
+    global_log_msg_count = 0;
     FLUFF_CLEANUP_N(global_log_buffer, global_log_count);
     FLUFF_CLEANUP_N(global_log_msg_buffer, global_log_msg_count);
 }

@@ -172,18 +172,18 @@ typedef struct Lexer {
 FLUFF_PRIVATE_API void _new_lexer(Lexer * self, FluffInterpreter * interpret, const char * str, size_t len);
 FLUFF_PRIVATE_API void _free_lexer(Lexer * self);
 
-FLUFF_PRIVATE_API void _lexer_parse(Lexer * self);
-FLUFF_PRIVATE_API void _lexer_parse_comment(Lexer * self);
-FLUFF_PRIVATE_API void _lexer_parse_number(Lexer * self);
-FLUFF_PRIVATE_API void _lexer_parse_label(Lexer * self);
-FLUFF_PRIVATE_API void _lexer_parse_string(Lexer * self);
-FLUFF_PRIVATE_API void _lexer_parse_operator(Lexer * self);
+FLUFF_PRIVATE_API FluffResult _lexer_parse(Lexer * self);
+FLUFF_PRIVATE_API FluffResult _lexer_parse_comment(Lexer * self);
+FLUFF_PRIVATE_API FluffResult _lexer_parse_number(Lexer * self);
+FLUFF_PRIVATE_API FluffResult _lexer_parse_label(Lexer * self);
+FLUFF_PRIVATE_API FluffResult _lexer_parse_string(Lexer * self);
+FLUFF_PRIVATE_API FluffResult _lexer_parse_operator(Lexer * self);
 
-FLUFF_PRIVATE_API void _lexer_read_long_operator(Lexer * self, Token * token, char prev_ch);
-FLUFF_PRIVATE_API void _lexer_read_decimal(Lexer * self, Token * token);
-FLUFF_PRIVATE_API void _lexer_read_hexadecimal(Lexer * self, Token * token);
-FLUFF_PRIVATE_API void _lexer_read_octal(Lexer * self, Token * token);
-FLUFF_PRIVATE_API void _lexer_read_binary(Lexer * self, Token * token);
+FLUFF_PRIVATE_API FluffResult _lexer_read_long_operator(Lexer * self, Token * token, char prev_ch);
+FLUFF_PRIVATE_API FluffResult _lexer_read_decimal(Lexer * self, Token * token);
+FLUFF_PRIVATE_API FluffResult _lexer_read_hexadecimal(Lexer * self, Token * token);
+FLUFF_PRIVATE_API FluffResult _lexer_read_octal(Lexer * self, Token * token);
+FLUFF_PRIVATE_API FluffResult _lexer_read_binary(Lexer * self, Token * token);
 
 FLUFF_PRIVATE_API void _lexer_pop(Lexer * self);
 FLUFF_PRIVATE_API void _lexer_push(Lexer * self, Token token);

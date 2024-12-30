@@ -74,8 +74,9 @@
 #define FLUFF_UNREACHABLE() __builtin_unreachable();
 #define FLUFF_BREAKPOINT()  raise(SIGTRAP);
 
-#define FLUFF_FAILURE 0x0
-#define FLUFF_OK      0x1
+#define FLUFF_OK            0x0
+#define FLUFF_FAILURE       0x1
+#define FLUFF_MAYBE_FAILURE 0x2
 
 /* -================
      Basic types

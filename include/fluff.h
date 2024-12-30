@@ -3,6 +3,7 @@
 #define FLUFF_H
 
 #include <base.h>
+#include <error.h>
 #include <core/config.h>
 #include <core/string.h>
 #include <core/instance.h>

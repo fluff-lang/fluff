@@ -4,6 +4,7 @@
 
 #define FLUFF_IMPLEMENTATION
 #include <base.h>
+#include <error.h>
 #include <parser/analyser.h>
 #include <parser/interpret.h>
 #include <parser/lexer.h>
@@ -100,19 +101,11 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 }
 
 // TODO: make ErrorPool class for supporting multiple errors
-#ifdef FLUFF_DEBUG
 #define _analyser_error_print_d(__line, __func, __fmt, ...)\
-        fluff_panic_fmt("[at %s:%s():%d]:\n\t-> %s:%zu:%zu: " __fmt, \
-            __FILE__, __func, __line, self->lexer->interpret->path, \
-            self->position.line + 1, self->position.column + 1, ##__VA_ARGS__\
+        fluff_push_log_d(FLUFF_LOG_TYPE_ERROR,\
+            self->interpret->path, self->position.line + 1, self->position.column + 1,\
+            __FILE__, __func, __line, __VA_ARGS__\
         )
-#else
-#define _analyser_error_print_d(__line, __func, __fmt, ...)\
-        fluff_panic_fmt("%s:%zu:%zu: " __fmt, \
-            self->lexer->interpret->path, \
-            self->position.line + 1, self->position.column + 1, ##__VA_ARGS__\
-        )
-#endif
 
 #define _analyser_error_print(...)\
         _analyser_error_print_d(__LINE__, __func__, __VA_ARGS__)
@@ -141,12 +134,14 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 
 // TODO: make AST_TYPED_LABEL
 // TODO: make sure nodes are cleared up on error
-FLUFF_PRIVATE_API void _analyser_read(Analyser * self) {
-    if (self->lexer->token_count == 0) return;
+FLUFF_PRIVATE_API FluffResult _analyser_read(Analyser * self) {
+    if (self->lexer->token_count == 0) return FLUFF_OK;
     self->token        = * self->lexer->tokens;
     self->state.expect = TOKEN_EOF;
     ASTNode * node = _analyser_read_scope(self);
-    if (node) _ast_node_append_child(&self->ast->root, node);
+    if (!node) return FLUFF_FAILURE;
+    _ast_node_append_child(&self->ast->root, node);
+    return FLUFF_OK;
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
@@ -193,19 +188,27 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
             _analyser_error("extraneous %s '%.*s'", 
                 _token_category_string(category), TOKEN_FMT(self->index)
             );
+            POP_STATE();
+            return NULL;
         }
-        case TOKEN_CATEGORY_ELSE:
-            _analyser_error("'else' statement out of 'if' statement"); 
-        default:
+        case TOKEN_CATEGORY_ELSE: {
+            _analyser_error("'else' statement out of 'if' statement");
+            POP_STATE();
+            return NULL;
+        }
+        default: {
             _analyser_error("unexpected token '%.*s'", TOKEN_FMT(self->index));
+            POP_STATE();
+            return NULL;
+        }
     }
-    self->state = prev_state;
 
     if (category != TOKEN_CATEGORY_END) {
-        if (!node) _analyser_error("ast node returned null");
-
-        if (self->state.last_scope)
+        if (!node) {
+            _analyser_error("ast node returned null");
+        } else if (self->state.last_scope) {
             _ast_node_append_child(self->state.last_scope, node);
+        }
     }
 
     POP_STATE();
@@ -242,6 +245,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_if(Analyser * self) {
 
     if (_analyser_peek(self, 1).type == TOKEN_ELSE) {
         _analyser_consume(self, 2);
+        _analyser_expect(self->index, TOKEN_CATEGORY_IF, TOKEN_CATEGORY_LBRACE);
         _ast_node_append_child(node, _analyser_read_token(self));
     }
     
@@ -655,7 +659,7 @@ FLUFF_PRIVATE_API Token _analyser_consume(Analyser * self, size_t n) {
 
 FLUFF_PRIVATE_API Token _analyser_rewind(Analyser * self, size_t n) {
     if (n > self->index)
-        _analyser_error("unexpected rewind");
+        fluff_panic("unexpected rewind");
     self->index   -= n;
     self->token    = self->lexer->tokens[self->index];
     self->position = self->token.start;

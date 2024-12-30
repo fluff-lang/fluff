@@ -4,6 +4,7 @@
 
 #define FLUFF_IMPLEMENTATION
 #include <base.h>
+#include <error.h>
 #include <parser/lexer.h>
 #include <parser/interpret.h>
 #include <core/config.h>
@@ -305,13 +306,17 @@ FLUFF_PRIVATE_API void _free_lexer(Lexer * self) {
 }
 
 /* -=- Parsing -=- */
-#define _lexer_error(__fmt, ...)\
-        fluff_panic_fmt("%s:%zu:%zu: " __fmt, \
-            self->interpret->path, self->location.line + 1, self->location.column + 1, ##__VA_ARGS__\
-        )
+#define _lexer_error(...) {\
+            fluff_push_log(FLUFF_LOG_TYPE_ERROR,\
+                self->interpret->path, self->location.line + 1, self->location.column + 1, __VA_ARGS__\
+            );\
+            return FLUFF_FAILURE;\
+        }
 
-FLUFF_PRIVATE_API void _lexer_parse(Lexer * self) {
-    if (self->len == 0) return;
+FLUFF_PRIVATE_API FluffResult _lexer_parse(Lexer * self) {
+    if (self->len == 0) return FLUFF_OK;
+    
+    FluffResult res = FLUFF_OK;
 
     while (_lexer_is_within_bounds(self)) {
         _lexer_digest(self);
@@ -324,26 +329,29 @@ FLUFF_PRIVATE_API void _lexer_parse(Lexer * self) {
             _lexer_consume(self, 1);
             _lexer_push(self, _make_token(TOKEN_END));
         } else if (is_comment(ch, _lexer_peek(self, 1))) {
-            _lexer_parse_comment(self);
+            res = _lexer_parse_comment(self);
         } else if (is_digit(ch) || is_decimal(ch, _lexer_peek(self, 1))) {
-            _lexer_parse_number(self);
+            res = _lexer_parse_number(self);
         } else if (is_string_delimiter(ch)) {
-            _lexer_parse_string(self);
+            res = _lexer_parse_string(self);
         } else if (is_operator(ch)) {
-            _lexer_parse_operator(self);
+            res = _lexer_parse_operator(self);
         } else if (is_label(ch) || !is_ascii(ch)) {
-            _lexer_parse_label(self);
+            res = _lexer_parse_label(self);
         } else
             _lexer_error("unexpected character '%c'", ch);
+
+        if (res != FLUFF_OK) return res;
 
         fluff_assert(self->prev_location.index < self->location.index, 
             "loop detected, aborting (%zu vs %zu)", 
             self->prev_location.index, self->location.index
         );
     }
+    return res;
 }
 
-FLUFF_PRIVATE_API void _lexer_parse_comment(Lexer * self) {
+FLUFF_PRIVATE_API FluffResult _lexer_parse_comment(Lexer * self) {
     if (_lexer_peek(self, 1) == '/') {
         while (_lexer_is_within_bounds(self)) {
             if (_lexer_peek(self, 1) == '\n' || _lexer_peek(self, 1) == '\0') break;
@@ -363,32 +371,48 @@ FLUFF_PRIVATE_API void _lexer_parse_comment(Lexer * self) {
         if (!ended) _lexer_error("unterminated comment");
     }
     _lexer_consume(self, 1);
+    return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API void _lexer_parse_number(Lexer * self) {
+FLUFF_PRIVATE_API FluffResult _lexer_parse_number(Lexer * self) {
     Token token = _make_token(TOKEN_INTEGER_LITERAL);
 
     if (_lexer_current_char(self) == '0' && is_ascii(_lexer_peek(self, 1))) {
         _lexer_consume(self, 1);
         const char ch = _lexer_current_char(self);
         switch (ch) {
-            case 'b': { _lexer_read_binary(self, &token);      break; }
-            case 'o': { _lexer_read_octal(self, &token);       break; }
-            case 'x': { _lexer_read_hexadecimal(self, &token); break; }
+            case 'b': {
+                if (_lexer_read_binary(self, &token) != FLUFF_OK)
+                    return FLUFF_FAILURE;
+                break;
+            }
+            case 'o': {
+                if (_lexer_read_octal(self, &token) != FLUFF_OK)
+                    return FLUFF_FAILURE;
+                break;
+            }
+            case 'x': {
+                if (_lexer_read_hexadecimal(self, &token) != FLUFF_OK)
+                    return FLUFF_FAILURE;
+                break;
+            }
             default: {
                 if (!is_token_separator(ch))
                     _lexer_error("invalid literal '%c'", ch);
-                _lexer_read_decimal(self, &token);
+                if (_lexer_read_decimal(self, &token) != FLUFF_OK)
+                    return FLUFF_FAILURE;
             }
         }
     } else {
-        _lexer_read_decimal(self, &token);
+        if (_lexer_read_decimal(self, &token) != FLUFF_OK)
+            return FLUFF_FAILURE;
     }
 
     _lexer_push(self, token);
+    return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API void _lexer_parse_label(Lexer * self) {
+FLUFF_PRIVATE_API FluffResult _lexer_parse_label(Lexer * self) {
     Token token = _make_token(TOKEN_LABEL_LITERAL);
 
     while (_lexer_is_within_bounds(self)) {
@@ -410,9 +434,10 @@ FLUFF_PRIVATE_API void _lexer_parse_label(Lexer * self) {
         self->location.index - self->prev_location.index
     );
     _lexer_push(self, token);
+    return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API void _lexer_parse_string(Lexer * self) {
+FLUFF_PRIVATE_API FluffResult _lexer_parse_string(Lexer * self) {
     Token token = _make_token(TOKEN_STRING_LITERAL);
 
     char start_delim = _lexer_current_char(self);
@@ -433,9 +458,10 @@ FLUFF_PRIVATE_API void _lexer_parse_string(Lexer * self) {
 
     _lexer_push(self, token);
     _lexer_consume(self, 1);
+    return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API void _lexer_parse_operator(Lexer * self) {
+FLUFF_PRIVATE_API FluffResult _lexer_parse_operator(Lexer * self) {
     Token token = _make_token(TOKEN_NONE);
 
     const char ch = _lexer_current_char(self);
@@ -466,53 +492,55 @@ FLUFF_PRIVATE_API void _lexer_parse_operator(Lexer * self) {
     }
 
     _lexer_consume(self, 1);
-    _lexer_read_long_operator(self, &token, ch);
+    if (_lexer_read_long_operator(self, &token, ch) != FLUFF_OK)
+        return FLUFF_FAILURE;
     _lexer_push(self, token);
+    return FLUFF_OK;
 }
 
 /* -=- Reading functionality -=- */
-FLUFF_PRIVATE_API void _lexer_read_long_operator(Lexer * self, Token * token, char prev_ch) {
+FLUFF_PRIVATE_API FluffResult _lexer_read_long_operator(Lexer * self, Token * token, char prev_ch) {
     const char ch = _lexer_current_char(self);
     switch (prev_ch) {
         case '=': {
             switch (ch) {
                 case '=': { token->type = TOKEN_EQUALS; break; }
-                default:  return;
+                default:  return FLUFF_OK;
             }
             break;
         }
         case '-': {
             switch (ch) {
                 case '>': { token->type = TOKEN_ARROW; break; }
-                default:  return;
+                default:  return FLUFF_OK;
             }
             break;
         }
         case '*': {
             switch (ch) {
                 case '*': { token->type = TOKEN_POWER; break; }
-                default:  return;
+                default:  return FLUFF_OK;
             }
             break;
         }
         case '!': {
             switch (ch) {
                 case '=': { token->type = TOKEN_NOT_EQUALS; break; }
-                default:  return;
+                default:  return FLUFF_OK;
             }
             break;
         }
         case '&': {
             switch (ch) {
                 case '&': { token->type = TOKEN_AND; break; }
-                default:  return;
+                default:  return FLUFF_OK;
             }
             break;
         }
         case '|': {
             switch (ch) {
                 case '|': { token->type = TOKEN_OR; break; }
-                default:  return;
+                default:  return FLUFF_OK;
             }
             break;
         }
@@ -520,7 +548,7 @@ FLUFF_PRIVATE_API void _lexer_read_long_operator(Lexer * self, Token * token, ch
             switch (ch) {
                 case '=': { token->type = TOKEN_LESS_EQUALS; break; }
                 case '<': { token->type = TOKEN_BIT_SHL;     break; }
-                default:  return;
+                default:  return FLUFF_OK;
             }
             break;
         }
@@ -528,17 +556,18 @@ FLUFF_PRIVATE_API void _lexer_read_long_operator(Lexer * self, Token * token, ch
             switch (ch) {
                 case '=': { token->type = TOKEN_GREATER_EQUALS; break; }
                 case '>': { token->type = TOKEN_BIT_SHR;        break; }
-                default:  return;
+                default:  return FLUFF_OK;
             }
             break;
         }
-        default: return;
+        default: return FLUFF_OK;
     }
 
     _lexer_consume(self, 1);
+    return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API void _lexer_read_decimal(Lexer * self, Token * token) {
+FLUFF_PRIVATE_API FluffResult _lexer_read_decimal(Lexer * self, Token * token) {
     bool e_notation = false;
     bool e_signed   = false;
     bool neg_e      = false;
@@ -547,6 +576,7 @@ FLUFF_PRIVATE_API void _lexer_read_decimal(Lexer * self, Token * token) {
 
     FluffFloat top      = 0;
     FluffFloat bot      = 0;
+    FluffInt   bot_len  = 1;
     FluffInt   exponent = 0;
 
     while (_lexer_is_within_bounds(self)) {
@@ -566,8 +596,8 @@ FLUFF_PRIVATE_API void _lexer_read_decimal(Lexer * self, Token * token) {
                     exponent = exponent * 10 + ch - '0';
                     ended    = true;
                 } else if (decimal) {
-                    bot = ch - '0';
-                    bot /= 10;
+                    bot      = bot * 10 + ch - '0';
+                    bot_len *= 10;
                 } else {
                     top = top * 10 + ch - '0';
                 }
@@ -601,15 +631,20 @@ FLUFF_PRIVATE_API void _lexer_read_decimal(Lexer * self, Token * token) {
         _lexer_error("malformed number");
     }
 
-    if (decimal) top += bot;
+    if (decimal && bot != 0) {
+        bot /= bot_len;
+        top += bot;
+    }
 
     while (exponent-- != 0) top *= (neg_e ? 0.1 : 10);
 
     if (decimal) token->data.f = top;
     else         token->data.i = (int)top;
+
+    return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API void _lexer_read_hexadecimal(Lexer * self, Token * token) {
+FLUFF_PRIVATE_API FluffResult _lexer_read_hexadecimal(Lexer * self, Token * token) {
     _lexer_consume(self, 1);
 
     while (_lexer_is_within_bounds(self)) {
@@ -627,9 +662,11 @@ FLUFF_PRIVATE_API void _lexer_read_hexadecimal(Lexer * self, Token * token) {
 
         _lexer_error("hexadecimal number containing non-hexadecimal character '%c'", ch);
     }
+
+    return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API void _lexer_read_octal(Lexer * self, Token * token) {
+FLUFF_PRIVATE_API FluffResult _lexer_read_octal(Lexer * self, Token * token) {
     _lexer_consume(self, 1);
 
     while (_lexer_is_within_bounds(self)) {
@@ -647,9 +684,11 @@ FLUFF_PRIVATE_API void _lexer_read_octal(Lexer * self, Token * token) {
 
         _lexer_error("octal number containing non-octal character '%c'", ch);
     }
+
+    return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API void _lexer_read_binary(Lexer * self, Token * token) {
+FLUFF_PRIVATE_API FluffResult _lexer_read_binary(Lexer * self, Token * token) {
     _lexer_consume(self, 1);
     while (_lexer_is_within_bounds(self)) {
         const char ch = _lexer_current_char(self);
@@ -666,6 +705,8 @@ FLUFF_PRIVATE_API void _lexer_read_binary(Lexer * self, Token * token) {
 
         _lexer_error("binary number containing non-binary character '%c'", ch);
     }
+
+    return FLUFF_OK;
 }
 
 /* -=- Token management -=- */

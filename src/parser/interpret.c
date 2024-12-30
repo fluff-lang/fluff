@@ -53,12 +53,19 @@ FLUFF_API FluffResult fluff_interpreter_read_file(FluffInterpreter * self, const
 FLUFF_PRIVATE_API FluffResult fluff_interpreter_read(FluffInterpreter * self, const char * source, size_t n) {
     Lexer lexer;
     _new_lexer(&lexer, self, source, n);
-    _lexer_parse(&lexer);
+    if (_lexer_parse(&lexer) == FLUFF_FAILURE) {
+        _free_lexer(&lexer);
+        return FLUFF_FAILURE;
+    }
     _lexer_dump(&lexer);
     
     Analyser analyser;
     _new_analyser(&analyser, &lexer);
-    _analyser_read(&analyser);
+    if (_analyser_read(&analyser) == FLUFF_FAILURE) {
+        _free_lexer(&lexer);
+        _free_analyser(&analyser);
+        return FLUFF_FAILURE;
+    }
     _ast_dump(&self->ast);
     
     _free_analyser(&analyser);
