@@ -24,7 +24,7 @@ jobs:
         with:
           msystem: mingw64
           update: true
-          install: git gcc make cmake
+          install: git gcc make cmake 7z
 
       - name: Setup reusable strings
         id: strings
@@ -50,7 +50,7 @@ jobs:
 
       - name: List Artifacts
         run: |
-          7z a fluff-${{ matrix.os }}-${{ matrix.compiler }} ${{ steps.strings.outputs.build_output }}.zip
+          7z a fluff-${{ matrix.os }}-${{ matrix.compiler }}.zip ${{ steps.strings.outputs.build_output }}
 
       - name: Archive Artifacts
         uses: actions/upload-artifact@master
