@@ -48,7 +48,8 @@ jobs:
       - name: List Artifacts
         run: ls ${{ steps.strings.outputs.build_output }}
 
-      - name: List Artifacts
+      - name: Archive output
+        shell: cmd
         run: |
           7z a fluff-${{ matrix.os }}-${{ matrix.compiler }}.zip ${{ steps.strings.outputs.build_output }}
 
