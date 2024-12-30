@@ -48,13 +48,16 @@ jobs:
       - name: List Artifacts
         run: ls ${{ steps.strings.outputs.build_output }}
 
+      - name: List Artifacts
+        run: |
+          7z a ${{ steps.strings.outputs.build_output }}.zip fluff-${{ matrix.os }}-${{ matrix.compiler }}
+          ls
+
       - name: Archive Artifacts
         uses: actions/upload-artifact@master
-        run: |
-          cd ${{ steps.strings.outputs.build_output }}
         with:
           name: fluff-${{ matrix.os }}-${{ matrix.compiler }}
-          path: ./build
+          path: ./fluff-${{ matrix.os }}-${{ matrix.compiler }}.zip
 
      # - name: Test
      #   working-directory: .
