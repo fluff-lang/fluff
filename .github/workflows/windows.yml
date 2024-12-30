@@ -50,10 +50,11 @@ jobs:
 
       - name: Archive Artifacts
         uses: actions/upload-artifact@master
-        working-directory: ${{ steps.strings.outputs.build_output }}
+        run: |
+          cd ${{ steps.strings.outputs.build_output }}
         with:
           name: fluff-${{ matrix.os }}-${{ matrix.compiler }}
-          path: build
+          path: ./build
 
      # - name: Test
      #   working-directory: .
