@@ -41,11 +41,11 @@ jobs:
         run: >
           cmake -B ${{ steps.strings.outputs.build_output }}
           -DCMAKE_C_COMPILER=${{ matrix.compiler }}
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_BUILD_TYPE=Release
           -S ${{ github.workspace }}
 
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build_output }} --config ${{ matrix.build_type }}
+        run: cmake --build ${{ steps.strings.outputs.build_output }} --config Release
 
       - name: List Artifacts
         run: ls ${{ steps.strings.outputs.build_output }}
@@ -58,7 +58,7 @@ jobs:
 
       - name: Test
         working-directory: ${{ steps.strings.outputs.build_output }}
-        run: ctest --build-config ${{ matrix.build_type }}
+        run: ctest --build-config Release
 
       - name: Download Artifact
         uses: actions/download-artifact@master
