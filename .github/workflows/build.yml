@@ -22,7 +22,7 @@ jobs:
 
       - name: Setup reusable strings
         id: strings
-        shell: ${{ matrix.shell }}
+        shell: bash
         run: |
           echo "build_output=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
@@ -38,7 +38,6 @@ jobs:
         if: matrix.compiler == 'mingw-w64'
       
       - name: Configure CMake
-        shell: ${{ matrix.shell }}
         run: >
           cmake -B ${{ steps.strings.outputs.build_output }}
           -DCMAKE_C_COMPILER=${{ matrix.compiler }}
@@ -46,11 +45,9 @@ jobs:
           -S ${{ github.workspace }}
 
       - name: Build
-        shell: ${{ matrix.shell }}
         run: cmake --build ${{ steps.strings.outputs.build_output }} --config ${{ matrix.build_type }}
 
       - name: List Artifacts
-        shell: ${{ matrix.shell }}
         run: ls ${{ steps.strings.outputs.build_output }}
 
       - name: Archive Artifacts
@@ -60,7 +57,6 @@ jobs:
           path: ${{ steps.strings.outputs.build_output }}
 
       - name: Test
-        shell: ${{ matrix.shell }}
         working-directory: ${{ steps.strings.outputs.build_output }}
         run: ctest --build-config ${{ matrix.build_type }}
 
