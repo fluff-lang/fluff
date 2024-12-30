@@ -28,7 +28,6 @@ jobs:
 
       - name: Setup MSYS2 (Windows only)
         uses: msys2/setup-msys2@master
-        shell: msys2 {0}
         with:
           msystem: mingw64
           update: true
