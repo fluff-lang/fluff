@@ -29,12 +29,12 @@ jobs:
       - name: Setup reusable strings
         id: strings
         run: |
-          echo "build_output='${{ github.workspace }}\build\'" >> "$GITHUB_OUTPUT"
+          echo "build_output=${{ github.workspace }}\build\" >> "$GITHUB_OUTPUT"
       
       - name: Configure CMake
         run: >
-          mkdir ${{ steps.strings.outputs.build_output }} &&
-          cd ${{ steps.strings.outputs.build_output }} &&
+          mkdir '${{ steps.strings.outputs.build_output }}' &&
+          cd '${{ steps.strings.outputs.build_output }}' &&
           cmake -B .
           -DCMAKE_C_COMPILER=${{ matrix.compiler }}
           -DCMAKE_BUILD_TYPE=Release
@@ -42,11 +42,11 @@ jobs:
 
       - name: Build
         run: |
-          cd ${{ steps.strings.outputs.build_output }} &&
+          cd '${{ steps.strings.outputs.build_output }}' &&
           cmake --build . --config Release
 
       - name: List Artifacts
-        run: ls ${{ steps.strings.outputs.build_output }}
+        run: ls '${{ steps.strings.outputs.build_output }}'
 
       - name: Archive output
         shell: cmd
@@ -67,4 +67,4 @@ jobs:
         uses: actions/download-artifact@master
         with:
           name: fluff-${{ matrix.os }}-${{ matrix.compiler }}
-          path: ${{ steps.strings.outputs.build_output }}
+          path: fluff-${{ matrix.os }}-${{ matrix.compiler }}.zip
