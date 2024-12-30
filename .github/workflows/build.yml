@@ -35,6 +35,7 @@ jobs:
         if: matrix.compiler == 'mingw-w64'
       
       - name: Configure CMake
+        shell: ${{ matrix.shell }}
         run: >
           cmake -B ${{ steps.strings.outputs.build_output }}
           -DCMAKE_C_COMPILER=${{ matrix.compiler }}
@@ -42,9 +43,11 @@ jobs:
           -S ${{ github.workspace }}
 
       - name: Build
+        shell: ${{ matrix.shell }}
         run: cmake --build ${{ steps.strings.outputs.build_output }} --config Release
 
       - name: List Artifacts
+        shell: ${{ matrix.shell }}
         run: ls ${{ steps.strings.outputs.build_output }}
 
       - name: Archive Artifacts
