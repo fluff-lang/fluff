@@ -30,7 +30,7 @@ jobs:
       - name: Setup reusable strings
         id: strings
         run: |
-          echo "build_output=${{ github.workspace }}\build" >> "$GITHUB_OUTPUT"
+          echo "build_output='${{ github.workspace }}\build'" >> "$GITHUB_OUTPUT"
       
       - name: Configure CMake
         run: >
