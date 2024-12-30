@@ -36,8 +36,7 @@ jobs:
             git:p
             gcc:p
             cmake:p
-        if: |
-          matrix.os == windows-latest
+        if: matrix.compiler == mingw-w64
       
       - name: Configure CMake
         run: >
