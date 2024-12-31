@@ -15,10 +15,13 @@
    ==============- */
 
 FLUFF_API void fluff_private_test() {
-    FluffInterpreter * interpret = fluff_new_interpreter();
-    if (fluff_interpreter_read_file(interpret, "../hello.fluff") == FLUFF_OK)
-        _ast_node_solve(&interpret->ast.root);
-    fluff_free_interpreter(interpret);
+    FluffModule * module = fluff_new_module("main");
+
+    fluff_instance_add_module(fluff_get_instance(), module);
+
+    FluffKlass * klass = _new_class("Person", 6);
+    _module_add_class(module, klass);
+    printf("%s\n", klass->name.data);
 }
 
 /* -==========

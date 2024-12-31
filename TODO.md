@@ -30,3 +30,4 @@
 # General
     [ ] More settings
     [ ] More documentation
+    [ ] Making structs private

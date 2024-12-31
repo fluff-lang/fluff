@@ -36,9 +36,9 @@
            fluff_push_log_d(__type, __file, __line, __column, NULL, NULL, 0, __VA_ARGS__)
 #endif
 
-#define fluff_push_note(...)  fluff_push_log(LOG_TYPE_NOTE, NULL, 0, 0, __VA_ARGS__)
-#define fluff_push_warn(...)  fluff_push_log(LOG_TYPE_WARN, NULL, 0, 0, __VA_ARGS__)
-#define fluff_push_error(...) fluff_push_log(LOG_TYPE_ERROR, NULL, 0, 0, __VA_ARGS__)
+#define fluff_push_note(...)  fluff_push_log(FLUFF_LOG_TYPE_NOTE, NULL, 0, 0, __VA_ARGS__)
+#define fluff_push_warn(...)  fluff_push_log(FLUFF_LOG_TYPE_WARN, NULL, 0, 0, __VA_ARGS__)
+#define fluff_push_error(...) fluff_push_log(FLUFF_LOG_TYPE_ERROR, NULL, 0, 0, __VA_ARGS__)
 
 /* -========
      Log

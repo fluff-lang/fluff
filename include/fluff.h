@@ -7,6 +7,8 @@
 #include <core/config.h>
 #include <core/string.h>
 #include <core/instance.h>
+#include <core/module.h>
+#include <core/class.h>
 #include <parser/text.h>
 #include <parser/lexer.h>
 #include <parser/ast.h>

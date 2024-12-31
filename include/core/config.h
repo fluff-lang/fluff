@@ -15,7 +15,7 @@
 /// Checkes if a condition is true, if it's not, panics with a custom message.
 #define fluff_assert(__cond, ...) {\
             if (!(bool)(__cond))\
-                fluff_panic_fmt("[" __FILE__ "]: assertion (" #__cond ") failed! " __VA_ARGS__);\
+                fluff_panic_fmt("[" __FILE__ "]:\n\tassertion (" #__cond ") failed! " __VA_ARGS__);\
         }
 
 // Creates a fluff version given major, minor, and patch numbers.
