@@ -93,8 +93,6 @@ FLUFF_API uint64_t fluff_default_hash_combine(uint64_t a, uint64_t b) {
     return a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2));
 }
 
-// TODO: mutexes
-// TODO: make mutexes time out
 FLUFF_API void * fluff_default_new_mutex() {
     pthread_mutex_t * self = fluff_alloc(NULL, sizeof(pthread_mutex_t));
     // NOTE: this always returns 0 so it's not going to be handled

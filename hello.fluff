@@ -1,1 +1,8 @@
-let a: int = 5;
+func fib(v: int) {
+    if v == 0 {
+        return 1;
+    }
+    return fib(v - 1) * v;
+}
+
+println(fib(5));

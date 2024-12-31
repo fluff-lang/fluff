@@ -131,7 +131,7 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 
 // This makes the function fail and return
 #define _analyser_failure()\
-        POP_STATE(); return NULL;
+        FLUFF_BREAKPOINT(); POP_STATE(); return NULL;
 
 // This checks the current result and fails depending on it
 #define _analyser_check(__node, ...)\
@@ -180,6 +180,15 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
 
     TokenCategory category = _token_type_get_category(self->token.type);
     switch (category) {
+        case TOKEN_CATEGORY_FUNC_DECL: {
+            // Functions
+            // If the function has a name, then it's a named function
+            if (_analyser_peek(self, 1).type == TOKEN_LABEL_LITERAL) {
+                node = _analyser_read_func(self);
+                break;
+            }
+            // Else, do a purposeful fallthrough, so we treat it as an expression
+        }
         case TOKEN_CATEGORY_LITERAL:
         case TOKEN_CATEGORY_LABEL:
         case TOKEN_CATEGORY_LPAREN:
@@ -187,8 +196,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_token(Analyser * self) {
         case TOKEN_CATEGORY_OPERATOR:
         case TOKEN_CATEGORY_OPERATOR_ARROW:
         case TOKEN_CATEGORY_OPERATOR_DOT:
-        case TOKEN_CATEGORY_OPERATOR_ELLIPSIS:
-        case TOKEN_CATEGORY_FUNC_DECL: {
+        case TOKEN_CATEGORY_OPERATOR_ELLIPSIS: {
             // Operands
             node = _analyser_read_expr(self, TOKEN_END);
             break;
@@ -417,8 +425,10 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self) {
     _analyser_check(node);
 
     if (self->token.type == TOKEN_LABEL_LITERAL) {
-        if (self->state.in_expr)
+        if (self->state.in_expr) {
             _analyser_error("cannot declare a named function within an expression");
+            _analyser_check(node);
+        }
 
         // In case it's a label, append it to the current node as the function's name
         _ast_node_append_child(node, TOKEN_TO_STRING_NODE());
@@ -444,7 +454,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self) {
 
             // Checkes if we have a label, this will be the argument name
             // If yes, append it to the function node 
-            _analyser_expect(self->index + 1, TOKEN_LABEL_LITERAL);
+            _analyser_expect(self->index, TOKEN_CATEGORY_LABEL);
             _analyser_check(node);
 
             _ast_node_append_child(node, TOKEN_TO_STRING_NODE());
@@ -493,6 +503,7 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_func(Analyser * self) {
     self->state.expect = TOKEN_RBRACE;
     _ast_node_append_child(node, _analyser_read_scope(self));
     _analyser_check(node);
+    // _analyser_consume(self, 1);
 
     POP_STATE();
     return node;
