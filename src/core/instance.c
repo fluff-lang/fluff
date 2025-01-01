@@ -70,7 +70,7 @@ FLUFF_API void fluff_instance_remove_module(FluffInstance * self, const char * n
     FluffModule * module = self->modules;
     while (module->next_module) {
         if (fluff_string_equal_s(&module->name, name)) {
-            top->next_module = module->next_module;
+            if (top) top->next_module = module->next_module;
             // This has to be nulled out before so the module doesn't think it's inside an instance
             module->instance = NULL;
             fluff_free_module(module);

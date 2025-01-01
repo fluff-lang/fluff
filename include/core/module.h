@@ -42,6 +42,5 @@ FLUFF_PRIVATE_API void _new_module(FluffModule * self, const char * name);
 FLUFF_PRIVATE_API void _free_module(FluffModule * self);
 
 FLUFF_PRIVATE_API size_t _module_add_class(FluffModule * self, FluffKlass * klass);
-FLUFF_PRIVATE_API void   _module_remove_class(FluffModule * self, size_t index);
 
 #endif

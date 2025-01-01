@@ -62,7 +62,7 @@ FLUFF_PRIVATE_API size_t _module_add_class(FluffModule * self, FluffKlass * klas
     while (* current) {
         if (fluff_string_equal(&klass->name, &(* current)->name)) {
             fluff_push_error("module already has a class named '%.*s'", 
-                (int)self->name.length, self->name.data
+                (int)klass->name.length, klass->name.data
             );
             return SIZE_MAX;
         }
@@ -73,19 +73,4 @@ FLUFF_PRIVATE_API size_t _module_add_class(FluffModule * self, FluffKlass * klas
     klass->module = self;
     klass->index  = i;
     return i;
-}
-
-FLUFF_PRIVATE_API void _module_remove_class(FluffModule * self, size_t index) {
-    if (!self->klasses) return;
-    FluffKlass * top    = NULL;
-    FluffKlass * klass = self->klasses;
-    while (klass->next_klass) {
-        if (klass->index == index) {
-            top->next_klass = klass->next_klass;
-            _free_class(klass);
-            return;
-        }
-        top   = klass;
-        klass = klass->next_klass;
-    }
 }

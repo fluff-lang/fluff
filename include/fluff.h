@@ -9,6 +9,8 @@
 #include <core/instance.h>
 #include <core/module.h>
 #include <core/class.h>
+#include <core/ir.h>
+#include <core/vm.h>
 #include <parser/text.h>
 #include <parser/lexer.h>
 #include <parser/ast.h>

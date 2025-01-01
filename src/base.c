@@ -15,13 +15,14 @@
    ==============- */
 
 FLUFF_API void fluff_private_test() {
-    FluffModule * module = fluff_new_module("main");
+    FluffModule * main = fluff_new_module("main");
+    fluff_instance_add_module(fluff_get_instance(), main);
 
-    fluff_instance_add_module(fluff_get_instance(), module);
+    IRBinary * binary = _new_ir_binary();
 
-    FluffKlass * klass = _new_class("Person", 6);
-    _module_add_class(module, klass);
-    printf("%s\n", klass->name.data);
+    _ir_chunk_dump(&binary->main_chunk);
+
+    _free_ir_binary(binary);
 }
 
 /* -==========
