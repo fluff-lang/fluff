@@ -47,7 +47,6 @@ typedef enum ASTNodeType {
     AST_NODE_OPERATOR, 
     AST_NODE_UNARY_OPERATOR, 
     AST_NODE_CALL, 
-    AST_NODE_SUBSCRIPT, 
 
     AST_NODE_BOOL_LITERAL, 
     AST_NODE_INT_LITERAL, 
@@ -103,6 +102,7 @@ typedef enum ASTOperatorType {
     AST_OPERATOR_DOT, 
     AST_OPERATOR_EQUAL, 
     AST_OPERATOR_COMMA, 
+    AST_OPERATOR_SUBSCRIPT, 
 
     AST_OPERATOR_NOT, 
     AST_OPERATOR_BIT_NOT, 
@@ -188,17 +188,22 @@ FLUFF_PRIVATE_API bool _ast_node_compare(const ASTNode * lhs, const ASTNode * rh
      ASTNodeVisitor
    ===================- */
 
-typedef struct ASTNodeVisitor {
-    ASTNode * root;
-
-    bool reversed;
-
-    size_t depth;
-} ASTNodeVisitor;
+typedef struct ASTNodeVisitor ASTNodeVisitor;
 
 typedef bool (* ASTNodeVisitCallback)(ASTNode *, ASTNodeVisitor *);
 
-FLUFF_PRIVATE_API bool _ast_node_visit(ASTNode * self, ASTNodeVisitor * visitor, ASTNodeVisitCallback callback);
+typedef struct ASTNodeVisitor {
+    ASTNode * root;
+    
+    ASTNodeVisitCallback pre_call;
+    ASTNodeVisitCallback post_call;
+
+    size_t depth;
+
+    FluffResult result;
+} ASTNodeVisitor;
+
+FLUFF_PRIVATE_API bool _ast_node_visit(ASTNode * self, ASTNodeVisitor * visitor);
 
 FLUFF_PRIVATE_API bool _ast_node_solve(ASTNode * self);
 FLUFF_PRIVATE_API bool _ast_node_dump(ASTNode * self);
@@ -207,7 +212,11 @@ FLUFF_PRIVATE_API bool _ast_node_dump(ASTNode * self);
      AST
    ========- */
 
+typedef struct FluffInterpreter FluffInterpreter;
+
 typedef struct AST {
+    FluffInterpreter * interpret;
+
     ASTNode root;
     ASTNode * relative_last;
     size_t    relative_count;
@@ -216,7 +225,7 @@ typedef struct AST {
     ASTConstant * last_constant;
 } AST;
 
-FLUFF_PRIVATE_API void _new_ast(AST * self);
+FLUFF_PRIVATE_API void _new_ast(AST * self, FluffInterpreter * interpret);
 FLUFF_PRIVATE_API void _free_ast(AST * self);
 
 FLUFF_PRIVATE_API void _ast_dump(AST * self);

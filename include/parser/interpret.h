@@ -15,14 +15,18 @@
      Interpreter
    ================- */
 
+typedef struct FluffModule FluffModule;
+
 typedef struct FluffInterpreter {
     const char * path;
+
+    FluffModule * module;
 
     AST ast;
 } FluffInterpreter;
 
-FLUFF_API FluffInterpreter * fluff_new_interpreter();
-FLUFF_API void              fluff_free_interpreter(FluffInterpreter * self);
+FLUFF_API FluffInterpreter * fluff_new_interpreter(FluffModule * module);
+FLUFF_API void               fluff_free_interpreter(FluffInterpreter * self);
 
 FLUFF_API FluffResult fluff_interpreter_read_string(FluffInterpreter * self, const char * source);
 FLUFF_API FluffResult fluff_interpreter_read_file(FluffInterpreter * self, const char * path);

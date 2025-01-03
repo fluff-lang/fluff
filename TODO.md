@@ -1,16 +1,15 @@
 # Analyser
-    [ ] Lists parsing in analyser
-    [ ] Generics?
+    [ ] Arrays
+    [ ] Subscript
     [ ] Unpacking operator
     [ ] Classes
-    [ ] Ellipsis operator
     [ ] `as` and `is` operator
-    [ ] Branch prediction
-    [ ] Tail wind optimization
 
 # AST
     [ ] Nested if/else optimization
     [ ] Function arguments optimization
+    [ ] Branch prediction
+    [ ] Tail wind optimization
 
 # Types
     [ ] Type checking
@@ -20,11 +19,11 @@
     [ ] JIT?
 
 # Instance
-    [ ] Modules
+    [x] Modules
 
 # Modules
-    [ ] Base
-    [ ] Classes
+    [x] Base
+    [-] Classes
     [ ] Functions
 
 # General

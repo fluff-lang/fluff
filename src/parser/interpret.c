@@ -13,9 +13,10 @@
      Interpreter
    ================- */
 
-FLUFF_API FluffInterpreter * fluff_new_interpreter() {
+FLUFF_API FluffInterpreter * fluff_new_interpreter(FluffModule * module) {
     FluffInterpreter * self = fluff_alloc(NULL, sizeof(FluffInterpreter));
-    _new_ast(&self->ast);
+    self->module = module;
+    _new_ast(&self->ast, self);
     return self;
 }
 
@@ -67,6 +68,7 @@ FLUFF_PRIVATE_API FluffResult fluff_interpreter_read(FluffInterpreter * self, co
         return FLUFF_FAILURE;
     }
     _ast_dump(&self->ast);
+    _ast_node_solve(&self->ast.root);
     
     _free_analyser(&analyser);
     _free_lexer(&lexer);

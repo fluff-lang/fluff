@@ -71,6 +71,11 @@
 
 #define FLUFF_BOOLALPHA(__b) ((__b) ? "true" : "false")
 
+#define FLUFF_SET_FLAG(__v, __f)    ((__v) | (__f))
+#define FLUFF_UNSET_FLAG(__v, __f)  ((__v) & ~(__f))
+#define FLUFF_TOGGLE_FLAG(__v, __f) ((__v) ^ (__f))
+#define FLUFF_HAS_FLAG(__v, __f)    ((__v) & (__f))
+
 #define FLUFF_UNREACHABLE() __builtin_unreachable();
 #define FLUFF_BREAKPOINT()  raise(SIGTRAP);
 

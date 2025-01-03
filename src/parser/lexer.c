@@ -109,11 +109,12 @@ FLUFF_CONSTEXPR TokenType label_match(Token * token, const char * str, size_t n)
     /*
         keywords by order of size:
             2 = or, as, is, in, if
-            3 = and, not, let, for, int
+            3 = and, not, let, for, int, pub
             4 = func, self, true, null, else, void, bool
             5 = const, class, false, while, break, float, array, super
             6 = string, object, return
-            8 = continue
+            7 = virtual
+            8 = continue, requires
     */
 
     switch (n) {
@@ -160,6 +161,10 @@ FLUFF_CONSTEXPR TokenType label_match(Token * token, const char * str, size_t n)
                 }
                 case 'i': {
                     if (str[1] == 'n' && str[2] == 't') return TOKEN_INT;
+                    break;
+                }
+                case 'p': {
+                    if (str[1] == 'u' && str[2] == 'b') return TOKEN_PUB;
                     break;
                 }
                 default: break;
@@ -272,10 +277,20 @@ FLUFF_CONSTEXPR TokenType label_match(Token * token, const char * str, size_t n)
             }
             break;
         }
+        case 7: {
+            if (str[0] == 'v' && str[1] == 'i' && str[2] == 'r' &&
+                str[3] == 't' && str[4] == 'u' && str[5] == 'a' &&
+                str[5] == 'l')
+                return TOKEN_VIRTUAL;
+            break;
+        }
         case 8: {
             if (str[0] == 'c' && str[1] == 'o' && str[2] == 'n' && str[3] == 't' && 
                 str[4] == 'i' && str[5] == 'n' && str[6] == 'u' && str[7] == 'e')
                 return TOKEN_CONTINUE;
+            if (str[0] == 'r' && str[1] == 'e' && str[2] == 'q' && str[3] == 'u' && 
+                str[4] == 'i' && str[5] == 'r' && str[6] == 'e' && str[7] == 's')
+                return TOKEN_REQUIRES;
         }
         default: break;
     }
@@ -819,6 +834,8 @@ FLUFF_PRIVATE_API const char * _token_category_string(TokenCategory category) {
         case TOKEN_CATEGORY_CLASS_DECL:        return "class declaration";
         case TOKEN_CATEGORY_CONTROL_KEYWORD:   return "keyword";
         case TOKEN_CATEGORY_TYPE_KEYWORD:      return "keyword";
+        case TOKEN_CATEGORY_MODIFIER_KEYWORD:  return "modifier keyword";
+        case TOKEN_CATEGORY_REQUIRES:          return "requirement";
         case TOKEN_CATEGORY_END:               return "semicolon";
         case TOKEN_CATEGORY_EOF:               return "eof";
         default:                               return "";
@@ -878,6 +895,9 @@ FLUFF_PRIVATE_API const char * _token_type_string(TokenType type) {
         ENUM_CASE(TOKEN_RETURN)
         ENUM_CASE(TOKEN_SELF)
         ENUM_CASE(TOKEN_SUPER)
+        ENUM_CASE(TOKEN_PUB)
+        ENUM_CASE(TOKEN_VIRTUAL)
+        ENUM_CASE(TOKEN_REQUIRES)
         ENUM_CASE(TOKEN_NULL)
         ENUM_CASE(TOKEN_LET)
         ENUM_CASE(TOKEN_CONST)
@@ -941,7 +961,7 @@ FLUFF_PRIVATE_API TokenCategory _token_type_get_category(TokenType type) {
         case TOKEN_LET: case TOKEN_CONST:
             return TOKEN_CATEGORY_DECL;
 
-        case TOKEN_BREAK: case TOKEN_CONTINUE: case TOKEN_RETURN:
+        case TOKEN_BREAK: case TOKEN_CONTINUE: case TOKEN_RETURN: case TOKEN_REQUIRES:
             return TOKEN_CATEGORY_CONTROL_KEYWORD;
 
         case TOKEN_FUNC:  return TOKEN_CATEGORY_FUNC_DECL;

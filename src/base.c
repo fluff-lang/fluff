@@ -15,14 +15,12 @@
    ==============- */
 
 FLUFF_API void fluff_private_test() {
-    FluffModule * main = fluff_new_module("main");
-    fluff_instance_add_module(fluff_get_instance(), main);
+    FluffModule * module = fluff_new_module("main");
+    fluff_instance_add_module(fluff_get_instance(), module);
 
-    IRBinary * binary = _new_ir_binary();
-
-    _ir_chunk_dump(&binary->main_chunk);
-
-    _free_ir_binary(binary);
+    FluffInterpreter * interpret = fluff_new_interpreter(module);
+    fluff_interpreter_read_file(interpret, "../hello.fluff");
+    fluff_free_interpreter(interpret);
 }
 
 /* -==========

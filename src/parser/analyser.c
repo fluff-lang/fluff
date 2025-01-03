@@ -50,34 +50,35 @@ FLUFF_CONSTEXPR_V struct {
     ASTOperatorType unary_op;
 } token_info[] = {
     // NOTE: yes I copied half of these from C++ standard, how did you know
-    MAKE_INFO(EQUAL,          18, 0,  true,  EQUAL,   NONE),
-    MAKE_INFO(DOT,            17, 0,  false, DOT,     NONE),
-    MAKE_INFO(LPAREN,         16, 0,  false, NONE,    NONE),
-    MAKE_INFO(AS,             15, 0,  false, AS,      NONE),
-    MAKE_INFO(IS,             15, 0,  false, IS,      NONE),
-    MAKE_INFO(IN,             15, 0,  false, IN,      NONE),
-    MAKE_INFO(NOT,            14, 14, true,  NONE,    NOT),
-    MAKE_INFO(BIT_NOT,        14, 14, true,  NONE,    BIT_NOT),
-    MAKE_INFO(MODULO,         13, 0,  false, MOD,     NONE),
-    MAKE_INFO(POWER,          13, 0,  true,  POW,     NONE),
-    MAKE_INFO(MULTIPLY,       12, 0,  false, MUL,     NONE),
-    MAKE_INFO(DIVIDE,         12, 0,  false, DIV,     NONE),
-    MAKE_INFO(PLUS,           11, 13, true,  ADD,     PROMOTE),
-    MAKE_INFO(MINUS,          11, 13, true,  SUB,     NEGATE),
-    MAKE_INFO(BIT_SHL,        10, 0,  false, BIT_SHL, NONE),
-    MAKE_INFO(BIT_SHR,        10, 0,  false, BIT_SHR, NONE),
-    MAKE_INFO(LESS,           10, 0,  false, LT,      NONE),
-    MAKE_INFO(LESS_EQUALS,    10, 0,  false, LE,      NONE),
-    MAKE_INFO(GREATER,        10, 0,  false, GT,      NONE),
-    MAKE_INFO(GREATER_EQUALS, 9,  0,  false, GE,      NONE),
-    MAKE_INFO(EQUALS,         9,  0,  false, EQ,      NONE),
-    MAKE_INFO(NOT_EQUALS,     8,  0,  false, NE,      NONE),
-    MAKE_INFO(BIT_AND,        7,  0,  false, BIT_AND, NONE),
-    MAKE_INFO(BIT_XOR,        6,  0,  false, BIT_XOR, NONE),
-    MAKE_INFO(BIT_OR,         5,  0,  false, BIT_OR,  NONE),
-    MAKE_INFO(AND,            4,  0,  false, AND,     NONE),
-    MAKE_INFO(OR,             3,  0,  false, OR,      NONE),
-    MAKE_INFO(COMMA,          2,  0,  true,  COMMA,   NONE),
+    MAKE_INFO(EQUAL,          19, 0,  true,  EQUAL,     NONE),
+    MAKE_INFO(DOT,            18, 0,  false, DOT,       NONE),
+    MAKE_INFO(LBRACKET,       17, 0,  false, SUBSCRIPT, NONE),
+    MAKE_INFO(LPAREN,         17, 0,  false, NONE,      NONE),
+    MAKE_INFO(IN,             16, 0,  false, IN,        NONE),
+    MAKE_INFO(AS,             15, 0,  false, AS,        NONE),
+    MAKE_INFO(IS,             15, 0,  false, IS,        NONE),
+    MAKE_INFO(NOT,            14, 14, true,  NONE,      NOT),
+    MAKE_INFO(BIT_NOT,        14, 14, true,  NONE,      BIT_NOT),
+    MAKE_INFO(MODULO,         13, 0,  false, MOD,       NONE),
+    MAKE_INFO(POWER,          13, 0,  true,  POW,       NONE),
+    MAKE_INFO(MULTIPLY,       12, 0,  false, MUL,       NONE),
+    MAKE_INFO(DIVIDE,         12, 0,  false, DIV,       NONE),
+    MAKE_INFO(PLUS,           11, 13, true,  ADD,       PROMOTE),
+    MAKE_INFO(MINUS,          11, 13, true,  SUB,       NEGATE),
+    MAKE_INFO(BIT_SHL,        10, 0,  false, BIT_SHL,   NONE),
+    MAKE_INFO(BIT_SHR,        10, 0,  false, BIT_SHR,   NONE),
+    MAKE_INFO(LESS,           10, 0,  false, LT,        NONE),
+    MAKE_INFO(LESS_EQUALS,    10, 0,  false, LE,        NONE),
+    MAKE_INFO(GREATER,        10, 0,  false, GT,        NONE),
+    MAKE_INFO(GREATER_EQUALS, 9,  0,  false, GE,        NONE),
+    MAKE_INFO(EQUALS,         9,  0,  false, EQ,        NONE),
+    MAKE_INFO(NOT_EQUALS,     8,  0,  false, NE,        NONE),
+    MAKE_INFO(BIT_AND,        7,  0,  false, BIT_AND,   NONE),
+    MAKE_INFO(BIT_XOR,        6,  0,  false, BIT_XOR,   NONE),
+    MAKE_INFO(BIT_OR,         5,  0,  false, BIT_OR,    NONE),
+    MAKE_INFO(AND,            4,  0,  false, AND,       NONE),
+    MAKE_INFO(OR,             3,  0,  false, OR,        NONE),
+    MAKE_INFO(COMMA,          2,  0,  true,  COMMA,     NONE),
 
     // [TOKEN_COLON]    = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
     // [TOKEN_ARROW]    = { 1,  0, false, AST_OPERATOR_DOT, AST_UOPERATOR_NONE },
@@ -127,11 +128,13 @@ FLUFF_PRIVATE_API void _free_analyser(Analyser * self) {
 #define _analyser_expect(__idx, ...) {\
             const TokenCategory __c[] = { __VA_ARGS__ };\
             _analyser_expect_n(self, __idx, __c, FLUFF_LENOF(__c), __LINE__, __func__);\
+            if (self->result != FLUFF_OK)\
+                FLUFF_BREAKPOINT();\
         }
 
 // This makes the function fail and return
 #define _analyser_failure()\
-        FLUFF_BREAKPOINT(); POP_STATE(); return NULL;
+        POP_STATE(); return NULL;
 
 // This checks the current result and fails depending on it
 #define _analyser_check(__node, ...)\
@@ -663,19 +666,40 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_control(Analyser * self) {
     return node;
 }
 
+FLUFF_PRIVATE_API ASTNode * _analyser_read_array(Analyser * self, TokenType expect) {
+    PUSH_STATE();
+
+    ASTNode * node = _new_ast_node(self->ast, AST_NODE_ARRAY_LITERAL, self->position);
+
+    self->state.in_array = true;
+
+    _analyser_consume(self, 1);
+    if (self->token.type != TOKEN_RBRACKET) {
+        // Appends an expression to the array
+        _ast_node_append_child(node, _analyser_read_expr(self, TOKEN_RBRACKET));
+        _analyser_check(node);
+    } else {
+        _analyser_consume(self, 1);
+    }
+
+    POP_STATE();
+    return node;
+}
+
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr(Analyser * self, TokenType expect) {
     PUSH_STATE();
     ++self->state.call_depth;
-    self->state.in_call = false;
-    self->state.expect  = expect;
+    self->state.in_call      = false;
+    self->state.in_subscript = false;
+    self->state.expect       = expect;
     ASTNode * node = _analyser_read_expr_pratt(self, 0);
     _analyser_check(node);
-    if (!node) _analyser_error("pratt parser returned null");
     POP_STATE();
     return node;
 }
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_limit) {
+    // TODO: make arrays and calls not use AST_OPERATOR_COMMA so we use less memory
     PUSH_STATE();
 
     if (!_analyser_is_within_bounds(self)) {
@@ -717,6 +741,15 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
 
             POP_STATE();
             if (self->state.in_call) return lhs;
+            break;
+        }
+        case TOKEN_CATEGORY_LBRACKET: {
+            // Arrays
+            lhs = _analyser_read_array(self, self->state.expect);
+            _analyser_check(lhs);
+            _analyser_consume(self, 1);
+            _analyser_expect(self->index, TOKEN_CATEGORY_RBRACKET);
+            _analyser_consume(self, 1);
             break;
         }
         case TOKEN_CATEGORY_OPERATOR: {
@@ -773,7 +806,8 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         TokenType type = _analyser_peek(self, 1).type;
         _analyser_expect(self->index + 1, 
             TOKEN_CATEGORY_OPERATOR, TOKEN_CATEGORY_OPERATOR_DOT, TOKEN_CATEGORY_OPERATOR_COMMA, 
-            TOKEN_CATEGORY_END, _token_type_get_category(self->state.expect), TOKEN_CATEGORY_LPAREN
+            TOKEN_CATEGORY_END, _token_type_get_category(self->state.expect), 
+            TOKEN_CATEGORY_LPAREN, TOKEN_CATEGORY_LBRACKET
         );
         _analyser_check(lhs);
         if (type == self->state.expect) break;
@@ -781,31 +815,43 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
         int prec = token_info[type].infix_prec;
         if (prec < prec_limit) break;
 
+        ASTNode * rhs = NULL;
+
         if (type == TOKEN_LPAREN) {
             _analyser_consume(self, 1);
             lhs = _analyser_read_expr_call(self, lhs);
             _analyser_check(lhs);
             continue;
-        }
-        if (type == TOKEN_COMMA) {
-            if (!self->state.in_call) {
-                _analyser_error_recoverable(
-                    "comma outside of function call, function/class declaration or array"
-                );
+        } else if (type == TOKEN_LBRACKET) {
+            _analyser_consume(self, 2);
+            self->state.expect = TOKEN_RBRACKET;
+            rhs = _analyser_read_expr_pratt(self, 0);
+            _analyser_check(rhs, _free_ast_node(lhs));
+            lhs = _new_ast_node_operator(self->ast, token_info[type].op, lhs, rhs, self->position);
+            _analyser_check(lhs);
+            _analyser_consume(self, 1);
+            continue;
+        } else {
+            if (type == TOKEN_COMMA) {
+                if (!self->state.in_call && !self->state.in_array) {
+                    _analyser_error_recoverable(
+                        "comma outside of function call or array"
+                    );
+                }
+                ++self->state.comma_count;
             }
-            ++self->state.comma_count;
+
+            TextSect sect = self->token.start;
+
+            _analyser_consume(self, 2);
+            rhs = _analyser_read_expr_pratt(self, prec);
+            _analyser_check(rhs, _free_ast_node(lhs));
+
+            if (token_info[type].right_associative)
+                lhs = _new_ast_node_operator(self->ast, token_info[type].op, rhs, lhs, sect);
+            else
+                lhs = _new_ast_node_operator(self->ast, token_info[type].op, lhs, rhs, sect);
         }
-
-        TextSect sect = self->token.start;
-
-        _analyser_consume(self, 2);
-        ASTNode * rhs = _analyser_read_expr_pratt(self, prec);
-        _analyser_check(rhs, _free_ast_node(lhs));
-
-        if (token_info[type].right_associative)
-            lhs = _new_ast_node_operator(self->ast, token_info[type].op, rhs, lhs, sect);
-        else
-            lhs = _new_ast_node_operator(self->ast, token_info[type].op, lhs, rhs, sect);
     }
 
     prev_state.comma_count = self->state.comma_count;
