@@ -67,6 +67,7 @@ FLUFF_PRIVATE_API ASTNode   * _analyser_read_type(Analyser * self, TokenType exp
 FLUFF_PRIVATE_API ASTNode   * _analyser_read_expr(Analyser * self, TokenType expect);
 FLUFF_PRIVATE_API ASTNode   * _analyser_read_expr_pratt(Analyser * self, int prec_limit);
 FLUFF_PRIVATE_API ASTNode   * _analyser_read_expr_call(Analyser * self, ASTNode * top);
+FLUFF_PRIVATE_API ASTNode   * _analyser_read_expr_subscript(Analyser * self, ASTNode * top);
 
 FLUFF_PRIVATE_API bool  _analyser_expect_n(Analyser * self, size_t idx, const TokenCategory * categories, size_t count, int line, const char * func);
 FLUFF_PRIVATE_API Token _analyser_consume(Analyser * self, size_t n);

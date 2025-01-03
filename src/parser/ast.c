@@ -39,6 +39,11 @@
 #define APPEND_OPCODE(name) printf(#name "\n")
 
 FLUFF_CONSTEXPR bool _solve_operator_pre(ASTNode * self, ASTNodeVisitor * visitor) {
+    // TODO: equal operator
+    return true;
+}
+
+FLUFF_CONSTEXPR bool _solve_operator_post(ASTNode * self, ASTNodeVisitor * visitor) {
     switch (self->data.op) {
         case AST_OPERATOR_ADD:
             { APPEND_OPCODE(add); break; }
@@ -94,15 +99,10 @@ FLUFF_CONSTEXPR bool _solve_operator_pre(ASTNode * self, ASTNodeVisitor * visito
             { APPEND_OPCODE(promote); break; }
         case AST_OPERATOR_NEGATE:
             { APPEND_OPCODE(negate); break; }
+        case AST_OPERATOR_SUBSCRIPT:
+            { APPEND_OPCODE(get_element); break; }
         default: APPEND_OPCODE(nop);
     }
-    return true;
-}
-
-FLUFF_CONSTEXPR bool _solve_operator_post(ASTNode * self, ASTNodeVisitor * visitor) {
-    // TODO: equal operator
-    if (self->data.op == AST_OPERATOR_SUBSCRIPT)
-        APPEND_OPCODE(get_element);
     return true;
 }
 
@@ -164,7 +164,7 @@ typedef struct ASTNodeInfo {
 FLUFF_CONSTEXPR_V ASTNodeInfo node_info[] = {
     MAKE_INFO(NONE,           0,        NULL,                NULL)
     MAKE_INFO(OPERATOR,       2,        _solve_operator_pre, _solve_operator_post)
-    MAKE_INFO(UNARY_OPERATOR, 1,        NULL,                NULL)
+    MAKE_INFO(UNARY_OPERATOR, 1,        _solve_operator_pre, _solve_operator_post)
     MAKE_INFO(CALL,           SIZE_MAX, NULL,                _solve_call_post)
     MAKE_INFO(BOOL_LITERAL,   0,        _solve_literal_pre,  NULL)
     MAKE_INFO(INT_LITERAL,    0,        _solve_literal_pre,  NULL)
@@ -236,6 +236,7 @@ FLUFF_CONSTEXPR bool _ast_node_solve_pre_callback(ASTNode * self, ASTNodeVisitor
     if (node_info[self->type].pre_call) {
         bool res = node_info[self->type].pre_call(self, visitor);
         if (res) putchar('\n');
+        //printf("pre called for %p\n", self);
         return res;
     }
     return true;
@@ -245,6 +246,7 @@ FLUFF_CONSTEXPR bool _ast_node_solve_post_callback(ASTNode * self, ASTNodeVisito
     if (node_info[self->type].post_call) {
         bool res = node_info[self->type].post_call(self, visitor);
         if (res) putchar('\n');
+        //printf("post called for %p\n", self);
         return res;
     }
     return true;
@@ -318,15 +320,17 @@ FLUFF_PRIVATE_API ASTNode * _new_ast_node_literal(AST * ast, const char * str, s
 
 FLUFF_PRIVATE_API ASTNode * _new_ast_node_operator(AST * ast, ASTOperatorType op, ASTNode * lhs, ASTNode * rhs, TextSect loc) {
     ASTNode * self = _new_ast_node(ast, AST_NODE_OPERATOR, loc);
+    self->data.op = op;
+
     // Appends each arm to the operator
     _ast_node_append_child(self, lhs);
     _ast_node_append_child(self, rhs);
 
     // Makes the current node foldable according to lhs and rhs
-    self->flags = FLUFF_SET_FLAG(self->flags, 
-        (lhs ? FLUFF_HAS_FLAG(lhs->flags, AST_NODE_FOLDABLE) : 0) | 
-        (rhs ? FLUFF_HAS_FLAG(rhs->flags, AST_NODE_FOLDABLE) : 0)
-    );
+    // self->flags = FLUFF_SET_FLAG(self->flags, 
+    //     (lhs ? FLUFF_HAS_FLAG(lhs->flags, AST_NODE_FOLDABLE) : 0) | 
+    //     (rhs ? FLUFF_HAS_FLAG(rhs->flags, AST_NODE_FOLDABLE) : 0)
+    // );
     return self;
 }
 
@@ -398,7 +402,7 @@ FLUFF_PRIVATE_API bool _ast_node_visit(ASTNode * self, ASTNodeVisitor * visitor)
     }
     --visitor->depth;
     
-    if (visitor->post_call) return visitor->post_call(self, visitor);
+    if (visitor->post_call && !visitor->post_call(self, visitor)) return false;
     return true;
 }
 

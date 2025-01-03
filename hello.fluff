@@ -1,1 +1,1 @@
-a[5];
+println("hello world!", 1, 2);

@@ -688,7 +688,6 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_array(Analyser * self, TokenType expe
 
 FLUFF_PRIVATE_API ASTNode * _analyser_read_expr(Analyser * self, TokenType expect) {
     PUSH_STATE();
-    ++self->state.call_depth;
     self->state.in_call      = false;
     self->state.in_subscript = false;
     self->state.expect       = expect;
@@ -823,13 +822,9 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
             _analyser_check(lhs);
             continue;
         } else if (type == TOKEN_LBRACKET) {
-            _analyser_consume(self, 2);
-            self->state.expect = TOKEN_RBRACKET;
-            rhs = _analyser_read_expr_pratt(self, 0);
-            _analyser_check(rhs, _free_ast_node(lhs));
-            lhs = _new_ast_node_operator(self->ast, token_info[type].op, lhs, rhs, self->position);
-            _analyser_check(lhs);
             _analyser_consume(self, 1);
+            lhs = _analyser_read_expr_subscript(self, lhs);
+            _analyser_check(lhs);
             continue;
         } else {
             if (type == TOKEN_COMMA) {
@@ -866,7 +861,26 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_call(Analyser * self, ASTNode * 
     ASTNode * node = _new_ast_node_call(top->ast, top, self->state.comma_count + 1, self->position);
     if (_analyser_peek(self, 1).type != TOKEN_RPAREN) {
         _ast_node_append_child(node, _analyser_read_expr_pratt(self, 0));
+        _analyser_check(node);
     } else _analyser_consume(self, 1);
+
+    POP_STATE();
+    return node;
+}
+
+FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_subscript(Analyser * self, ASTNode * top) {
+    PUSH_STATE();
+
+    _analyser_consume(self, 1);
+
+    self->state.in_subscript = true;
+    self->state.expect       = TOKEN_RBRACKET;
+    ASTNode * node = _analyser_read_expr_pratt(self, 0);
+    _analyser_check(node);
+    _analyser_consume(self, 1);
+    _analyser_expect(self->index, TOKEN_CATEGORY_RBRACKET);
+
+    node = _new_ast_node_operator(top->ast, AST_OPERATOR_SUBSCRIPT, top, node, self->position);
 
     POP_STATE();
     return node;

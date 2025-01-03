@@ -1,6 +1,6 @@
 # Analyser
-    [ ] Arrays
-    [ ] Subscript
+    [x] Arrays
+    [x] Subscript
     [ ] Unpacking operator
     [ ] Classes
     [ ] `as` and `is` operator
