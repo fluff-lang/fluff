@@ -19,10 +19,11 @@
    ==========- */
 
 /* -=- Initializers -=- */
-FLUFF_PRIVATE_API FluffKlass * _new_class(const char * name, size_t len) {
+FLUFF_PRIVATE_API FluffKlass * _new_class(const char * name, size_t len, FluffKlass * inherits) {
     FluffKlass * self = fluff_alloc(NULL, sizeof(FluffKlass));
     FLUFF_CLEANUP(self);
     _new_string_n(&self->name, name, len);
+    self->inherits = inherits;
     return self;
 }
 

@@ -94,6 +94,13 @@ FLUFF_API FluffModule * fluff_instance_get_module_by_name(FluffInstance * self, 
 /* -=- Private -=- */
 FLUFF_PRIVATE_API void _new_instance(FluffInstance * self) {
     FLUFF_CLEANUP(self);
+    self->bool_klass   = _new_class("bool",   4, NULL);
+    self->int_klass    = _new_class("int",    3, NULL);
+    self->float_klass  = _new_class("float",  5, NULL);
+    self->string_klass = _new_class("string", 6, NULL);
+    self->object_klass = _new_class("object", 6, NULL);
+    self->array_klass  = _new_class("array",  5, self->object_klass);
+    self->func_klass   = _new_class("func",   4, self->object_klass);
 }
 
 FLUFF_PRIVATE_API void _free_instance(FluffInstance * self) {
@@ -107,5 +114,12 @@ FLUFF_PRIVATE_API void _free_instance(FluffInstance * self) {
         old->instance = NULL;
         fluff_free_module(old);
     }
+    _free_class(self->bool_klass);
+    _free_class(self->int_klass);
+    _free_class(self->float_klass);
+    _free_class(self->string_klass);
+    _free_class(self->object_klass);
+    _free_class(self->array_klass);
+    _free_class(self->func_klass);
     FLUFF_CLEANUP(self);
 }

@@ -1,34 +1,25 @@
 #pragma once
-#ifndef FLUFF_CORE_INSTANCE_H
-#define FLUFF_CORE_INSTANCE_H
+#ifndef FLUFF_CORE_OBJECT_H
+#define FLUFF_CORE_OBJECT_H
 
 /* -=============
      Includes
    =============- */
 
 #include <base.h>
-#include <core/method.h>
-#include <core/module.h>
 
-/* -=============
-     Instance
-   =============- */
+/* -===========
+     Object
+   ===========- */
 
 typedef struct FluffKlass FluffKlass;
-typedef struct FluffMethod FluffMethod;
+typedef struct FluffObject FluffObject;
 
-// This struct represents an instance.
-typedef struct FluffInstance {
-    FluffModule * modules;
+typedef struct LinkedObject LinkedObject;
 
-    FluffKlass * bool_klass;
-    FluffKlass * int_klass;
-    FluffKlass * float_klass;
-    FluffKlass * string_klass;
-    FluffKlass * object_klass;
-    FluffKlass * array_klass;
-    FluffKlass * func_klass;
-} FluffInstance;
+typedef struct LinkedObject {
+    LinkedObject * prev;
+} LinkedObject;
 
 FLUFF_API FluffInstance * fluff_new_instance();
 FLUFF_API void            fluff_free_instance(FluffInstance * self);

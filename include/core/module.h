@@ -8,12 +8,14 @@
 
 #include <base.h>
 #include <core/string.h>
+#include <core/method.h>
 
 /* -===========
      Module
    ===========- */
 
 typedef struct FluffKlass FluffKlass;
+typedef struct FluffMethod FluffMethod;
 
 typedef struct FluffInstance FluffInstance;
 typedef struct FluffModule FluffModule;
@@ -25,6 +27,7 @@ typedef struct FluffModule {
     FluffString name;
 
     FluffKlass * klasses;
+    MethodPool   methods;
 
     FluffModule * next_module;
 
