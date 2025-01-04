@@ -30,3 +30,4 @@
     [ ] More settings
     [ ] More documentation
     [ ] Making structs private
+    [ ] Better error handling when out of memory

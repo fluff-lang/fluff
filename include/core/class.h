@@ -19,13 +19,15 @@
      Klass
    ==========- */
 
+typedef struct FluffInstance FluffInstance;
 typedef struct FluffModule FluffModule;
 typedef struct FluffKlass FluffKlass;
 
 // This struct represents a class.
 typedef struct FluffKlass {
-    FluffModule * module;
-    FluffKlass  * inherits;
+    FluffInstance * instance;
+    FluffModule   * module;
+    FluffKlass    * inherits;
 
     FluffString name;
 

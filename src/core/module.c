@@ -69,8 +69,9 @@ FLUFF_PRIVATE_API size_t _module_add_class(FluffModule * self, FluffKlass * klas
         current = &(* current)->next_klass;
         ++i;
     }
-    * current     = klass;
-    klass->module = self;
-    klass->index  = i;
+    * current       = klass;
+    klass->instance = self->instance;
+    klass->module   = self;
+    klass->index    = i;
     return i;
 }

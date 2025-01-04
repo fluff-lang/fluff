@@ -21,6 +21,7 @@ typedef struct FluffMethod FluffMethod;
 typedef struct FluffInstance {
     FluffModule * modules;
 
+    FluffKlass * void_klass;
     FluffKlass * bool_klass;
     FluffKlass * int_klass;
     FluffKlass * float_klass;
