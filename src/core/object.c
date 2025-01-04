@@ -11,6 +11,8 @@
 #include <core/class.h>
 #include <core/config.h>
 
+#include <math.h>
+
 /* -==============
      Internals
    ==============- */
@@ -55,6 +57,141 @@ FLUFF_CONSTEXPR FluffObject * _float2string(FluffObject * self) {
     fluff_format(buf, 8, "%f", self->data._float);
     return fluff_new_string_object(self->instance, buf);
 }
+
+#define DEF_OP(__type, __action, __op, __field)\
+        FLUFF_CONSTEXPR FluffResult _##__type##_##__action(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {\
+            result->data.__field = lhs->data.__field __op rhs->data.__field;\
+            return FLUFF_OK;\
+        }
+
+#define DEF_UOP(__type, __action, __op, __field)\
+        FLUFF_CONSTEXPR FluffResult _##__type##_##__action(FluffObject * self, FluffObject * result) {\
+            result->data.__field = __op self->data.__field;\
+            return FLUFF_OK;\
+        }
+
+#define DEF_CMP_OP(__type, __action, __op, __field)\
+        FLUFF_CONSTEXPR FluffResult _##__type##_##__action(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {\
+            result->data._bool = (lhs->data.__field __op rhs->data.__field);\
+            return FLUFF_OK;\
+        }
+
+typedef FluffResult(* OpAction)(FluffObject *, FluffObject *, FluffObject *);
+typedef FluffResult(* UOpAction)(FluffObject *, FluffObject *);
+
+typedef struct OperationInfo {
+    OpAction  add, sub, mul, div, mod, pow;
+    OpAction  and, or, bit_and, bit_or, bit_xor, bit_shl, bit_shr;
+    OpAction  eq, ne, gt, ge, lt, le;
+    UOpAction bit_not, not, negate;
+} OperationInfo;
+
+DEF_CMP_OP(bool, eq,  ==, _bool)
+DEF_CMP_OP(bool, ne,  !=, _bool)
+DEF_OP(bool,     and, &&, _bool)
+DEF_OP(bool,     or,  ||, _bool)
+DEF_UOP(bool,    not, !,  _bool)
+
+FLUFF_CONSTEXPR_V OperationInfo bool_op_info = {
+    NULL, NULL, NULL, NULL, NULL, NULL, 
+    _bool_and, _bool_or, NULL, NULL, NULL, NULL, NULL, 
+    _bool_eq, _bool_ne, NULL, NULL, NULL, NULL, 
+    NULL, _bool_not, NULL
+};
+
+DEF_OP(int,     add,     +,  _int)
+DEF_OP(int,     sub,     -,  _int)
+DEF_OP(int,     mul,     *,  _int)
+DEF_CMP_OP(int, eq,      ==, _int)
+DEF_CMP_OP(int, ne,      !=, _int)
+DEF_CMP_OP(int, gt,      >,  _int)
+DEF_CMP_OP(int, ge,      >=, _int)
+DEF_CMP_OP(int, lt,      <,  _int)
+DEF_CMP_OP(int, le,      <=, _int)
+DEF_OP(int,     bit_and, &,  _int)
+DEF_OP(int,     bit_or,  |,  _int)
+DEF_OP(int,     bit_xor, ^,  _int)
+DEF_OP(int,     bit_shl, <<, _int)
+DEF_OP(int,     bit_shr, >>, _int)
+DEF_UOP(int,    bit_not, ~,  _int)
+DEF_UOP(int,    negate,  -,  _int)
+
+FLUFF_CONSTEXPR FluffResult _int_div(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {
+    if (rhs->data._int == 0) {
+        fluff_push_error("division by zero");
+        return FLUFF_FAILURE;
+    }
+    result->data._int = lhs->data._int / rhs->data._int;
+    return FLUFF_OK;
+}
+
+FLUFF_CONSTEXPR FluffResult _int_mod(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {
+    if (rhs->data._int == 0) {
+        fluff_push_error("modulo by zero");
+        return FLUFF_FAILURE;
+    }
+    result->data._int = lhs->data._int % rhs->data._int;
+    return FLUFF_OK;
+}
+
+FLUFF_CONSTEXPR FluffResult _int_pow(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {
+    lhs->data._int = pow(lhs->data._int, rhs->data._int);
+    return FLUFF_OK;
+}
+
+FLUFF_CONSTEXPR_V OperationInfo int_op_info = {
+    _int_add, _int_sub, _int_mul, _int_div, _int_mod, _int_pow, 
+    NULL, NULL, _int_bit_and, _int_bit_or, _int_bit_xor, _int_bit_shl, _int_bit_shr, 
+    _int_eq, _int_ne, _int_gt, _int_ge, _int_lt, _int_le, 
+    _int_bit_not, NULL, _int_negate
+};
+
+DEF_OP(float,     add,    +,  _float)
+DEF_OP(float,     sub,    -,  _float)
+DEF_OP(float,     mul,    *,  _float)
+DEF_CMP_OP(float, eq,     ==, _float)
+DEF_CMP_OP(float, ne,     !=, _float)
+DEF_CMP_OP(float, gt,     >,  _float)
+DEF_CMP_OP(float, ge,     >=, _float)
+DEF_CMP_OP(float, lt,     <,  _float)
+DEF_CMP_OP(float, le,     <=, _float)
+DEF_UOP(float,    negate, -,  _float)
+
+FLUFF_CONSTEXPR FluffResult _float_div(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {
+    if (rhs->data._float == 0) {
+        fluff_push_error("division by zero");
+        return FLUFF_FAILURE;
+    }
+    result->data._float = lhs->data._float / rhs->data._float;
+    return FLUFF_OK;
+}
+
+FLUFF_CONSTEXPR FluffResult _float_mod(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {
+    if (rhs->data._float == 0) {
+        fluff_push_error("modulo by zero");
+        return FLUFF_FAILURE;
+    }
+    result->data._float = fmod(lhs->data._float, rhs->data._float);
+    return FLUFF_OK;
+}
+
+FLUFF_CONSTEXPR FluffResult _float_pow(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {
+    result->data._float = powf(lhs->data._float, rhs->data._float);
+    return FLUFF_OK;
+}
+
+FLUFF_CONSTEXPR_V OperationInfo float_op_info = {
+    _float_add, _float_sub, _float_mul, _float_div, _float_mod, _float_pow, 
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+    _float_eq, _float_ne, _float_gt, _float_ge, _float_lt, _float_le, 
+    NULL, NULL, _float_negate
+};
+
+// FLUFF_CONSTEXPR_V OperationInfo string_op_info = {
+//     NULL, NULL, NULL, NULL, NULL, NULL, _bool_and, _bool_or, NULL, NULL, NULL, 
+//     _bool_eq, _bool_ne, _bool_gt, _bool_ge, _bool_lt, _bool_le, 
+//     NULL, _bool_not, NULL
+// };
 
 /* -=============
      Instance
@@ -131,119 +268,81 @@ FLUFF_API FluffKlass * fluff_object_get_class(FluffObject * self) {
     return self->klass;
 }
 
-FLUFF_API FluffResult fluff_object_add(FluffObject * lhs, FluffObject * rhs) {
+#define DEF_OP_FN(__name, __op, __connective)\
+        FLUFF_API FluffResult fluff_object_##__name(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {\
+            if (!fluff_object_is_same_class(lhs, rhs->klass)) {\
+                fluff_push_error(\
+                    "cannot " __op " an object of type %s " __connective " type %s\n",\
+                    lhs->klass->name.data, rhs->klass->name.data\
+                );\
+                return FLUFF_FAILURE;\
+            }\
+            if (lhs->klass == lhs->instance->bool_klass && bool_op_info.__name)\
+                return bool_op_info.__name(lhs, rhs, result);\
+            if (lhs->klass == lhs->instance->int_klass && int_op_info.__name)\
+                return int_op_info.__name(lhs, rhs, result);\
+            if (lhs->klass == lhs->instance->float_klass && float_op_info.__name)\
+                return float_op_info.__name(lhs, rhs, result);\
+            return FLUFF_FAILURE;\
+        }
 
-    return FLUFF_FAILURE;
-}
+#define DEF_UOP_FN(__name, __op)\
+        FLUFF_API FluffResult fluff_object_##__name(FluffObject * self, FluffObject * result) {\
+            if (self->klass == self->instance->bool_klass && bool_op_info.__name)\
+                return bool_op_info.__name(self, result);\
+            if (self->klass == self->instance->int_klass && int_op_info.__name)\
+                return int_op_info.__name(self, result);\
+            if (self->klass == self->instance->float_klass && float_op_info.__name)\
+                return float_op_info.__name(self, result);\
+            fluff_push_error(\
+                "cannot " __op " an object of type %s\n", self->klass->name.data\
+            );\
+            return FLUFF_FAILURE;\
+        }
 
-FLUFF_API FluffResult fluff_object_sub(FluffObject * lhs, FluffObject * rhs) {
+#define DEF_OP_CMP_FN(__name)\
+        FLUFF_API FluffResult fluff_object_##__name(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {\
+            if (fluff_object_is_same_class(lhs, rhs->klass)) {\
+                if (lhs->klass == lhs->instance->bool_klass && bool_op_info.__name)\
+                    return bool_op_info.__name(lhs, rhs, result);\
+                if (lhs->klass == lhs->instance->int_klass && int_op_info.__name)\
+                    return int_op_info.__name(lhs, rhs, result);\
+                if (lhs->klass == lhs->instance->float_klass && float_op_info.__name)\
+                    return float_op_info.__name(lhs, rhs, result);\
+            }\
+            fluff_push_error(\
+                "cannot compare an object of type %s with type %s\n",\
+                lhs->klass->name.data, rhs->klass->name.data\
+            );\
+            return FLUFF_FAILURE;\
+        }
 
-    return FLUFF_FAILURE;
-}
+DEF_OP_FN(add, "add", "with")
+DEF_OP_FN(sub, "subtract", "with")
+DEF_OP_FN(mul, "multiply", "by")
+DEF_OP_FN(div, "divide", "by")
+DEF_OP_FN(mod, "compute division remainder of", "by")
+DEF_OP_FN(pow, "power", "to")
+DEF_OP_CMP_FN(eq)
+DEF_OP_CMP_FN(ne)
+DEF_OP_CMP_FN(gt)
+DEF_OP_CMP_FN(ge)
+DEF_OP_CMP_FN(lt)
+DEF_OP_CMP_FN(le)
+DEF_OP_FN(and, "compare", "with")
+DEF_OP_FN(or, "compare", "with")
+DEF_OP_FN(bit_and, "bitwise AND", "with")
+DEF_OP_FN(bit_or, "bitwise OR", "with")
+DEF_OP_FN(bit_xor, "bitwise XOR", "with")
+DEF_OP_FN(bit_shl, "bitwise left shift", "by")
+DEF_OP_FN(bit_shr, "bitwise right shift", "by")
+DEF_UOP_FN(bit_not, "negate")
+DEF_UOP_FN(not, "negate")
+DEF_UOP_FN(negate, "negate")
 
-FLUFF_API FluffResult fluff_object_mul(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_div(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_mod(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_pow(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_eq(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_ne(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_gt(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_ge(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_lt(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_le(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_and(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_or(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_bit_and(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_bit_or(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_bit_xor(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_bit_shl(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_bit_shr(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_bit_not(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_not(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_negate(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
-}
-
-FLUFF_API FluffResult fluff_object_promote(FluffObject * lhs, FluffObject * rhs) {
-
-    return FLUFF_FAILURE;
+FLUFF_API FluffResult fluff_object_promote(FluffObject * self, FluffObject * result) {
+    // NOTE: this does virtually nothing, so why even bother?
+    return FLUFF_OK;
 }
 
 FLUFF_API void * fluff_object_unbox(FluffObject * self) {

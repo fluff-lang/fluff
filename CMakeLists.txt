@@ -36,4 +36,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
+# NOTE: this is the math library lol
+target_link_libraries(${PROJECT_NAME} m)
+
 target_compile_options(${PROJECT_NAME} PUBLIC -gdwarf-4 -Wall -O0 -DFLUFF_DEBUG)

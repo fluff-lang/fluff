@@ -21,6 +21,13 @@ FLUFF_API void fluff_private_test() {
     FluffInterpreter * interpret = fluff_new_interpreter(module);
     fluff_interpreter_read_file(interpret, "../hello.fluff");
     fluff_free_interpreter(interpret);
+
+    FluffObject * a = fluff_new_int_object(fluff_get_instance(), 2);
+    FluffObject * b = fluff_new_int_object(fluff_get_instance(), 8);
+    fluff_object_or(a, b, a);
+    printf("number is %d\n", * (int *)fluff_object_unbox(a));
+    fluff_free_object(a);
+    fluff_free_object(b);
 }
 
 /* -==========

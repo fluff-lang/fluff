@@ -10,6 +10,7 @@
 #include <core/module.h>
 #include <core/class.h>
 #include <core/method.h>
+#include <core/object.h>
 #include <core/ir.h>
 #include <core/vm.h>
 #include <parser/text.h>
