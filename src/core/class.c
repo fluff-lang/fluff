@@ -65,3 +65,9 @@ FLUFF_PRIVATE_API size_t _class_get_property_index(FluffKlass * self, const char
     }
     return SIZE_MAX;
 }
+
+FLUFF_PRIVATE_API size_t _class_get_alloc_size(FluffKlass * self) {
+    size_t size = sizeof(ObjectTable);
+    size += sizeof(FluffObject) * (self->property_count + (self->inherits ? 1 : 0));
+    return size;
+}

@@ -37,7 +37,7 @@ typedef struct FluffObject FluffObject;
 
 typedef struct KlassProperty {
     FluffString   name;
-    FluffKlass  * type;
+    FluffKlass  * type; // TODO: change this name to "klass"
     FluffObject * def_value;
     size_t        index;
 } KlassProperty;
@@ -65,5 +65,6 @@ FLUFF_PRIVATE_API void         _free_class(FluffKlass * self);
 
 FLUFF_PRIVATE_API size_t _class_add_property(FluffKlass * self, const char * name, FluffKlass * type, FluffObject * def_value);
 FLUFF_PRIVATE_API size_t _class_get_property_index(FluffKlass * self, const char * name);
+FLUFF_PRIVATE_API size_t _class_get_alloc_size(FluffKlass * self);
 
 #endif

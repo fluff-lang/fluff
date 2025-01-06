@@ -20,6 +20,12 @@
 
 typedef struct FluffInstance FluffInstance;
 typedef struct FluffKlass FluffKlass;
+typedef struct FluffObject FluffObject;
+
+typedef struct ObjectTable {
+    size_t        ref_count;
+    FluffObject * vptr;
+} ObjectTable;
 
 typedef struct FluffObject {
     FluffInstance * instance;
@@ -83,7 +89,7 @@ FLUFF_API FluffObject * fluff_object_get_item(FluffObject * self, const char * n
 
 FLUFF_API void * fluff_object_unbox(FluffObject * self);
 
-FLUFF_PRIVATE_API void _new_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass);
+FLUFF_PRIVATE_API void _new_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass, FluffObject * top_obj);
 FLUFF_PRIVATE_API void _new_null_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass);
 FLUFF_PRIVATE_API void _new_array_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass);
 FLUFF_PRIVATE_API void _new_bool_object(FluffObject * self, FluffInstance * instance, FluffBool v);
@@ -94,9 +100,12 @@ FLUFF_PRIVATE_API void _new_string_object_n(FluffObject * self, FluffInstance * 
 FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj);
 FLUFF_PRIVATE_API void _free_object(FluffObject * self);
 
-FLUFF_PRIVATE_API void        * _object_alloc_class(FluffObject * self, FluffInstance * instance);
-FLUFF_PRIVATE_API void        * _object_alloc_common_class(FluffObject * self, FluffInstance * instance);
-FLUFF_PRIVATE_API void        * _object_alloc_native_class(FluffObject * self, FluffInstance * instance);
+FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffInstance * instance, FluffObject * top_obj);
+FLUFF_PRIVATE_API void _object_alloc_common_class(FluffObject * self, FluffInstance * instance, FluffObject * top_obj);
+FLUFF_PRIVATE_API void _object_alloc_native_class(FluffObject * self, FluffInstance * instance, FluffObject * top_obj);
+FLUFF_PRIVATE_API void _object_get_data(FluffObject * self, ObjectTable * table, FluffObject ** subobjects);
+FLUFF_PRIVATE_API void _object_set_data(FluffObject * self, ObjectTable * table, FluffObject * subobjects, size_t obj_count);
+
 FLUFF_PRIVATE_API void          _object_ref(FluffObject * self);
 FLUFF_PRIVATE_API void          _object_deref(FluffObject * self);
 FLUFF_PRIVATE_API FluffObject * _object_realloc_as_linked(FluffObject * self);
