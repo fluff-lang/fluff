@@ -33,7 +33,7 @@ FLUFF_API FluffString * fluff_new_string_c(char c, size_t size) {
     return self;
 }
 
-FLUFF_API FluffString * fluff_copy_string(const FluffString * other) {
+FLUFF_API FluffString * fluff_clone_string(const FluffString * other) {
     return fluff_new_string_n(other->data, other->length);
 }
 
@@ -151,6 +151,7 @@ FLUFF_API bool fluff_string_is_empty(const FluffString * self) {
 
 /* -=- Private -=- */
 FLUFF_PRIVATE_API void _new_string(FluffString * self, const char * str) {
+    if (self->data) _free_string(self);
     self->type     = 0;
     self->length   = (str ? strlen(str) : 0);
     self->capacity = self->length + 1;
@@ -160,6 +161,7 @@ FLUFF_PRIVATE_API void _new_string(FluffString * self, const char * str) {
 }
 
 FLUFF_PRIVATE_API void _new_string_n(FluffString * self, const char * str, size_t size) {
+    if (self->data) _free_string(self);
     self->length   = size;
     self->capacity = size + 1;
     self->data     = fluff_alloc(NULL, self->capacity);
@@ -172,6 +174,7 @@ FLUFF_PRIVATE_API void _new_string_n(FluffString * self, const char * str, size_
 }
 
 FLUFF_PRIVATE_API void _new_string_c(FluffString * self, char c, size_t size) {
+    if (self->data) _free_string(self);
     self->length   = size;
     self->capacity = size + 1;
     self->data     = fluff_alloc(NULL, self->capacity);

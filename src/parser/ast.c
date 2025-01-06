@@ -227,6 +227,12 @@ FLUFF_CONSTEXPR bool _ast_node_dump_callback(ASTNode * self, ASTNodeVisitor * vi
 FLUFF_CONSTEXPR bool _ast_node_free_callback(ASTNode * self, ASTNodeVisitor * visitor) {
     if (!self) return false;
     if (&self->ast->root == self) return true; // Avoiding free if the value is the root
+    switch (self->type) {
+        case AST_NODE_LABEL_LITERAL:
+        case AST_NODE_STRING_LITERAL:
+            { _free_string(&self->data.string_literal); break; }
+        default: break;
+    }
     FLUFF_CLEANUP(self);
     fluff_free(self);
     return true;

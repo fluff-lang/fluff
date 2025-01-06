@@ -33,7 +33,7 @@ FLUFF_API FluffString * fluff_new_string_n(const char * str, size_t size);
 FLUFF_API FluffString * fluff_new_string_c(char c, size_t size);
 
 // Creates a string as a copy to another.
-FLUFF_API FluffString * fluff_copy_string(const FluffString * other);
+FLUFF_API FluffString * fluff_clone_string(const FluffString * other);
 
 // Destroys a string.
 FLUFF_API void fluff_free_string(FluffString * self);

@@ -15,19 +15,27 @@
    ==============- */
 
 FLUFF_API void fluff_private_test() {
+    FluffInstance * instance = fluff_get_instance();
+
     FluffModule * module = fluff_new_module("main");
-    fluff_instance_add_module(fluff_get_instance(), module);
+    fluff_instance_add_module(instance, module);
 
-    FluffInterpreter * interpret = fluff_new_interpreter(module);
-    fluff_interpreter_read_file(interpret, "../hello.fluff");
-    fluff_free_interpreter(interpret);
+    // FluffInterpreter * interpret = fluff_new_interpreter(module);
+    // fluff_interpreter_read_file(interpret, "../hello.fluff");
+    // fluff_free_interpreter(interpret);
 
-    FluffObject * a = fluff_new_int_object(fluff_get_instance(), 2);
-    FluffObject * b = fluff_new_int_object(fluff_get_instance(), 8);
-    fluff_object_or(a, b, a);
-    printf("number is %d\n", * (int *)fluff_object_unbox(a));
-    fluff_free_object(a);
-    fluff_free_object(b);
+    FluffKlass * foo_klass = _new_class("Foo", 3, NULL);
+    _class_add_property(foo_klass, "a", instance->int_klass, fluff_new_int_object(instance, 1));
+    _module_add_class(module, foo_klass);
+
+    FluffKlass * bar_klass = _new_class("Bar", 3, foo_klass);
+    _class_add_property(bar_klass, "b", instance->int_klass, fluff_new_int_object(instance, 2));
+    _module_add_class(module, bar_klass);
+
+    FluffObject * obj = fluff_new_object(instance, bar_klass);
+    FluffObject * val = fluff_object_get_member(obj, "a");
+    printf("%d\n", * (int *)fluff_object_unbox(val));
+    fluff_free_object(obj);
 }
 
 /* -==========
