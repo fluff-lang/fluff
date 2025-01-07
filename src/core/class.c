@@ -41,6 +41,7 @@ FLUFF_PRIVATE_API void _free_class(FluffKlass * self) {
         if (property->def_value) fluff_free_object(property->def_value);
     }
     _free_string(&self->name);
+    fluff_free(self->properties);
     FLUFF_CLEANUP(self);
     fluff_free(self);
 }
