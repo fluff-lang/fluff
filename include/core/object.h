@@ -99,6 +99,7 @@ FLUFF_PRIVATE_API void _new_int_object(FluffObject * self, FluffInstance * insta
 FLUFF_PRIVATE_API void _new_float_object(FluffObject * self, FluffInstance * instance, FluffFloat v);
 FLUFF_PRIVATE_API void _new_string_object(FluffObject * self, FluffInstance * instance, const char * str);
 FLUFF_PRIVATE_API void _new_string_object_n(FluffObject * self, FluffInstance * instance, const char * str, size_t len);
+FLUFF_PRIVATE_API void _ref_object(FluffObject * self, FluffObject * obj);
 FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj);
 FLUFF_PRIVATE_API void _free_object(FluffObject * self);
 

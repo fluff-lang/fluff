@@ -37,9 +37,11 @@ FLUFF_API void fluff_private_test() {
     _module_add_class(module, baz_klass);
 
     FluffObject * baz_obj = fluff_new_object(instance, baz_klass);
-    FluffObject * val     = fluff_object_get_member(baz_obj, "c");
-    printf("%d\n", * (int *)fluff_object_unbox(val));
+    FluffObject * foo_obj = fluff_object_as(baz_obj, foo_klass);
     fluff_free_object(baz_obj);
+    FluffObject * val     = fluff_object_get_member(foo_obj, "a");
+    printf("%d\n", * (int *)fluff_object_unbox(val));
+    fluff_free_object(foo_obj);
 }
 
 /* -==========

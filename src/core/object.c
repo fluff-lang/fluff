@@ -286,6 +286,12 @@ FLUFF_API FluffObject * fluff_new_string_object_n(FluffInstance * instance, cons
     return self;
 }
 
+FLUFF_API FluffObject * fluff_ref_object(FluffObject * self) {
+    FluffObject * obj = fluff_new_null_object(self->instance, self->klass);
+    _ref_object(obj, self);
+    return obj;
+}
+
 FLUFF_API FluffObject * fluff_clone_object(FluffObject * self) {
     FluffObject * obj = fluff_alloc(NULL, sizeof(FluffObject));
     FLUFF_CLEANUP(obj);
@@ -456,7 +462,7 @@ FLUFF_API FluffObject * fluff_object_as(FluffObject * self, FluffKlass * klass) 
 }
 
 FLUFF_API FluffObject * fluff_object_get_member(FluffObject * self, const char * name) {
-    if (!self->klass) {
+    if (!self || !self->klass) {
         fluff_push_error("cannot get a member on an incomplete object");
         return NULL;
     }
@@ -554,6 +560,17 @@ FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj) {
     }
 }
 
+FLUFF_PRIVATE_API void _ref_object(FluffObject * self, FluffObject * obj) {
+    if (self->klass) {
+        if (FLUFF_HAS_FLAG(self->klass->flags, FLUFF_KLASS_PRIMITIVE)) {
+            self->data = obj->data;
+        } else {
+            ++_object_get_table(obj)->ref_count;
+            self->data._data = obj->data._data;
+        }
+    }
+}
+
 FLUFF_PRIVATE_API void _free_object(FluffObject * self) {
     if (self->klass) {
         if (self->klass == self->instance->string_klass) {
@@ -632,6 +649,15 @@ FLUFF_PRIVATE_API FluffObject * _object_cast(FluffObject * self, FluffKlass * kl
 }
 
 FLUFF_PRIVATE_API FluffObject * _object_downcast(FluffObject * self, FluffKlass * klass) {
+    FluffObject * obj = self;
+    while (obj && obj->klass) {
+        if (obj->klass == klass) {
+            return fluff_ref_object(obj);
+        }
+        if (!obj->klass->inherits) return NULL;
+
+        obj = _object_table_get_subobjects(_object_get_table(obj));
+    }
     return NULL;
 }
 
@@ -640,18 +666,21 @@ FLUFF_PRIVATE_API FluffObject * _object_upcast(FluffObject * self, FluffKlass * 
     return NULL;
 }
 
-FLUFF_PRIVATE_API void _object_ref(FluffObject * self) {
-    ++((ObjectTable *)self->data._data)->ref_count;
-}
-
 FLUFF_PRIVATE_API void _object_deref(FluffObject * self) {
     ObjectTable * table = _object_get_table(self);
-    if (--table->ref_count != 0) return;
+    if (--table->ref_count > 0) return;
+
+    printf("object at %p (%s) has to be freed\n", self, self->klass->name.data);
 
     FluffObject * objs = _object_table_get_subobjects(table);
 
     const size_t inherits  = (self->klass->inherits ? 1 : 0);
     const size_t obj_count = self->klass->property_count + inherits;
+    
+    if (inherits) {
+        printf("vtable to %p found\n", _object_get_table(objs)->vptr);
+        _object_get_table(objs)->vptr = NULL;
+    }
 
     for (size_t i = 0; i < obj_count; ++i) {
         _free_object(&objs[i]);
