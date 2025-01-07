@@ -29,7 +29,7 @@ FLUFF_API void fluff_private_test() {
     _module_add_class(module, foo_klass);
 
     FluffKlass * bar_klass = _new_class("Bar", 3, foo_klass);
-    _class_add_property(bar_klass, "b", instance->int_klass, fluff_new_int_object(instance, 2));
+    //_class_add_property(bar_klass, "b", instance->int_klass, fluff_new_int_object(instance, 2));
     _module_add_class(module, bar_klass);
 
     FluffKlass * baz_klass = _new_class("Baz", 3, bar_klass);
@@ -37,9 +37,8 @@ FLUFF_API void fluff_private_test() {
     _module_add_class(module, baz_klass);
 
     FluffObject * baz_obj = fluff_new_object(instance, baz_klass);
-    FluffObject * bar_obj = fluff_object_as(baz_obj, bar_klass);
-    FluffObject * foo_obj = fluff_object_as(baz_obj, foo_klass);
-    printf("%p %p %p\n", baz_obj, bar_obj, foo_obj);
+    FluffObject * val     = fluff_object_get_member(baz_obj, "c");
+    printf("%d\n", * (int *)fluff_object_unbox(val));
     fluff_free_object(baz_obj);
 }
 

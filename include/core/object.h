@@ -22,9 +22,11 @@ typedef struct FluffInstance FluffInstance;
 typedef struct FluffKlass FluffKlass;
 typedef struct FluffObject FluffObject;
 
+typedef struct ObjectTable ObjectTable;
+
 typedef struct ObjectTable {
     size_t        ref_count;
-    FluffObject * vptr;
+    ObjectTable * vptr;
 } ObjectTable;
 
 typedef struct FluffObject {
@@ -38,7 +40,7 @@ typedef struct FluffObject {
 
         // ObjectArray _array;
 
-        ObjectTable * _data;
+        void * _data;
     } data;
 } FluffObject;
 
@@ -89,7 +91,7 @@ FLUFF_API FluffObject * fluff_object_get_item(FluffObject * self, const char * n
 
 FLUFF_API void * fluff_object_unbox(FluffObject * self);
 
-FLUFF_PRIVATE_API void _new_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass, FluffObject * top_obj);
+FLUFF_PRIVATE_API void _new_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass);
 FLUFF_PRIVATE_API void _new_null_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass);
 FLUFF_PRIVATE_API void _new_array_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass);
 FLUFF_PRIVATE_API void _new_bool_object(FluffObject * self, FluffInstance * instance, FluffBool v);
@@ -97,16 +99,14 @@ FLUFF_PRIVATE_API void _new_int_object(FluffObject * self, FluffInstance * insta
 FLUFF_PRIVATE_API void _new_float_object(FluffObject * self, FluffInstance * instance, FluffFloat v);
 FLUFF_PRIVATE_API void _new_string_object(FluffObject * self, FluffInstance * instance, const char * str);
 FLUFF_PRIVATE_API void _new_string_object_n(FluffObject * self, FluffInstance * instance, const char * str, size_t len);
-FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj, FluffObject * top_obj);
+FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj);
 FLUFF_PRIVATE_API void _free_object(FluffObject * self);
 
-FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * top_obj);
-FLUFF_PRIVATE_API void _object_alloc_common_class(FluffObject * self, FluffObject * top_obj);
-FLUFF_PRIVATE_API void _object_clone_alloc(FluffObject * self, FluffObject * obj, FluffObject * top_obj);
-FLUFF_PRIVATE_API void _object_clone_alloc_common_class(FluffObject * self, FluffObject * obj, FluffObject * top_obj);
+FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj);
 
-FLUFF_PRIVATE_API void _object_get_data(FluffObject * self, ObjectTable * table, FluffObject ** subobjects);
-FLUFF_PRIVATE_API void _object_set_data(FluffObject * self, ObjectTable * table, FluffObject * subobjects, size_t obj_count);
+FLUFF_PRIVATE_API ObjectTable * _object_get_table(FluffObject * self);
+FLUFF_PRIVATE_API ObjectTable * _object_table_alloc(FluffKlass * klass);
+FLUFF_PRIVATE_API FluffObject * _object_table_get_subobjects(ObjectTable * self);
 
 FLUFF_PRIVATE_API FluffObject * _object_cast(FluffObject * self, FluffKlass * klass);
 FLUFF_PRIVATE_API FluffObject * _object_downcast(FluffObject * self, FluffKlass * klass);

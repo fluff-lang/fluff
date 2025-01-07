@@ -242,7 +242,7 @@ FLUFF_CONSTEXPR_V OperationInfo string_op_info = {
 
 FLUFF_API FluffObject * fluff_new_object(FluffInstance * instance, FluffKlass * klass) {
     FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
-    _new_object(self, instance, klass, NULL);
+    _new_object(self, instance, klass);
     return self;
 }
 
@@ -289,7 +289,7 @@ FLUFF_API FluffObject * fluff_new_string_object_n(FluffInstance * instance, cons
 FLUFF_API FluffObject * fluff_clone_object(FluffObject * self) {
     FluffObject * obj = fluff_alloc(NULL, sizeof(FluffObject));
     FLUFF_CLEANUP(obj);
-    _clone_object(obj, self, NULL);
+    _clone_object(obj, self);
     return obj;
 }
 
@@ -465,15 +465,16 @@ FLUFF_API FluffObject * fluff_object_get_member(FluffObject * self, const char *
         return NULL;
     }
 
-    FluffKlass * klass = self->klass;
-    while (klass) {
-        size_t idx = _class_get_property_index(klass, name);
-        if (idx != SIZE_MAX) {
-            FluffObject * subobj = NULL;
-            _object_get_data(self, NULL, &subobj);
-            return &subobj[idx + (klass->inherits ? 1 : 0)];
-        }
-        klass = klass->inherits;
+    FluffObject * obj = self;
+    while (obj && obj->klass) {
+        const size_t inherits = (obj->klass->inherits ? 1 : 0);
+        printf("walking thru type %s at %p (inherits = %zu)\n", obj->klass->name.data, obj, inherits);
+
+        size_t idx = _class_get_property_index(obj->klass, name);
+        if (idx != SIZE_MAX) return _object_table_get_subobjects(_object_get_table(obj)) + idx + inherits;
+        if (inherits == 0)   return NULL;
+
+        obj = _object_table_get_subobjects(_object_get_table(obj));
     }
     return NULL;
 }
@@ -485,13 +486,13 @@ FLUFF_API FluffObject * fluff_object_get_item(FluffObject * self, const char * n
 }
 
 /* -=- Private -=- */
-FLUFF_PRIVATE_API void _new_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass, FluffObject * top_obj) {
+FLUFF_PRIVATE_API void _new_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass) {
     FLUFF_CLEANUP(self);
     self->instance = instance;
     self->klass    = klass;
     if (klass && !FLUFF_HAS_FLAG(klass->flags, FLUFF_KLASS_PRIMITIVE)) {
         // TODO: native classes
-        _object_alloc_common_class(self, top_obj);
+        _object_alloc(self, NULL);
     }
 }
 
@@ -540,7 +541,7 @@ FLUFF_PRIVATE_API void _new_string_object_n(FluffObject * self, FluffInstance * 
     _new_string_n(&self->data._string, str, len);
 }
 
-FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj, FluffObject * top_obj) {
+FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj) {
     // TODO: cloning native and common objects
     self->klass    = obj->klass;
     self->instance = obj->instance;
@@ -548,7 +549,7 @@ FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj, Fluf
         if (FLUFF_HAS_FLAG(self->klass->flags, FLUFF_KLASS_PRIMITIVE)) {
             self->data = obj->data;
         } else {
-            //_object_clone_alloc(self, obj, self);
+            //_object_alloc(self, obj);
         }
     }
 }
@@ -564,58 +565,55 @@ FLUFF_PRIVATE_API void _free_object(FluffObject * self) {
     FLUFF_CLEANUP(self);
 }
 
-FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * top_obj) {
-    ObjectTable table;
-    table.ref_count = 1;
-    table.vptr      = top_obj;
+FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj) {
+    const size_t inherits = (self->klass->inherits ? 1 : 0);
 
-    const size_t obj_count = self->klass->property_count + (self->klass->inherits ? 1 : 0);
-    FluffObject  subobjects[obj_count];
-    if (self->klass->inherits) {
-        _new_object(subobjects, self->instance, self->klass->inherits, self);
+    ObjectTable * table = _object_table_alloc(self->klass);
+    table->ref_count = 1;
+
+    FluffObject * subobjs = _object_table_get_subobjects(table);
+
+    if (inherits) {
+        _new_object(subobjs, self->instance, self->klass->inherits);
+        _object_get_table(subobjs)->vptr = table;
+        ++subobjs;
     }
-    for (size_t i = (top_obj ? 1 : 0); i < obj_count; ++i) {
+
+    for (size_t i = 0; i < self->klass->property_count; ++i) {
         KlassProperty * property = &self->klass->properties[i];
         if (property->def_value) {
-            _clone_object(&subobjects[i], property->def_value, NULL);
+            _clone_object(subobjs, property->def_value);
         } else {
-            _new_object(&subobjects[i], self->instance, property->type, NULL);
+            _new_object(subobjs, self->instance, property->type);
         }
+        printf("allocated member '%s' (%s) at %p\n", 
+            property->name.data, property->type->name.data, subobjs
+        );
+        ++subobjs;
     }
-    _object_set_data(self, &table, subobjects, obj_count);
+
+    self->data._data = table;
+
+    printf("allocated object of type '%s' on ptr %p (inherits %s, vptr = %p)\n", 
+        self->klass->name.data, 
+        table, (self->klass->inherits ? self->klass->inherits->name.data : NULL), self->data._data
+    );
 }
 
-FLUFF_PRIVATE_API void _object_alloc_common_class(FluffObject * self, FluffObject * top_obj) {
-    // Allocate the necessary data
-    const size_t size = _class_get_alloc_size(self->klass);
+FLUFF_PRIVATE_API ObjectTable * _object_get_table(FluffObject * self) {
+    return (ObjectTable *)self->data._data;
+}
+
+FLUFF_PRIVATE_API ObjectTable * _object_table_alloc(FluffKlass * klass) {
+    const size_t size = _class_get_alloc_size(klass);
     uint8_t * data = fluff_alloc(NULL, size);
     FLUFF_CLEANUP_N(data, size);
-    self->data._data = (ObjectTable *)data;
-
-    // Sets the top object in case there is any
-    if (!top_obj && self->klass->inherits && FLUFF_HAS_FLAG(self->klass->inherits->flags, FLUFF_KLASS_VIRTUAL))
-        top_obj = self;
-
-    _object_alloc(self, top_obj);
+    return (ObjectTable *)data;
 }
 
-FLUFF_PRIVATE_API void _object_get_data(FluffObject * self, ObjectTable * table, FluffObject ** subobjects) {
-    uint8_t * data = (uint8_t *)self->data._data;
-    if (table) * table = * (ObjectTable *)data;
-    data += sizeof(ObjectTable);
-
-    if (subobjects) * subobjects = (FluffObject *)data;
-}
-
-FLUFF_PRIVATE_API void _object_set_data(FluffObject * self, ObjectTable * table, FluffObject * subobjects, size_t obj_count) {
-    uint8_t * data = (uint8_t *)self->data._data;
-    if (table) * (ObjectTable *)data = * table;
-    data += sizeof(ObjectTable);
-
-    for (size_t i = 0; i < obj_count; ++i) {
-        * (FluffObject *)data = subobjects[i];
-        data += sizeof(FluffObject);
-    }
+FLUFF_PRIVATE_API FluffObject * _object_table_get_subobjects(ObjectTable * self) {
+    if (!self) return NULL;
+    return (FluffObject *)(self + 1);
 }
 
 FLUFF_PRIVATE_API FluffObject * _object_cast(FluffObject * self, FluffKlass * klass) {
@@ -634,15 +632,7 @@ FLUFF_PRIVATE_API FluffObject * _object_cast(FluffObject * self, FluffKlass * kl
 }
 
 FLUFF_PRIVATE_API FluffObject * _object_downcast(FluffObject * self, FluffKlass * klass) {
-    FluffObject * obj = self;
-    FluffKlass  * current_klass = self->klass;
-    while (current_klass != klass && obj) {
-        obj = (FluffObject *)(obj->data._data + 1);
-        current_klass = obj->klass->inherits;
-    }
-    if (current_klass && !obj) return NULL;
-    if (!current_klass && obj) return NULL;
-    return obj;
+    return NULL;
 }
 
 FLUFF_PRIVATE_API FluffObject * _object_upcast(FluffObject * self, FluffKlass * klass) {
@@ -655,13 +645,14 @@ FLUFF_PRIVATE_API void _object_ref(FluffObject * self) {
 }
 
 FLUFF_PRIVATE_API void _object_deref(FluffObject * self) {
-    ObjectTable * table = self->data._data;
+    ObjectTable * table = _object_get_table(self);
     if (--table->ref_count != 0) return;
-    ++table;
 
-    FluffObject * objs = (FluffObject *)table;
+    FluffObject * objs = _object_table_get_subobjects(table);
 
-    const size_t obj_count = self->klass->property_count + (self->klass->inherits ? 1 : 0);
+    const size_t inherits  = (self->klass->inherits ? 1 : 0);
+    const size_t obj_count = self->klass->property_count + inherits;
+
     for (size_t i = 0; i < obj_count; ++i) {
         _free_object(&objs[i]);
     }
