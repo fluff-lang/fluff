@@ -22,11 +22,9 @@ typedef struct FluffInstance FluffInstance;
 typedef struct FluffKlass FluffKlass;
 typedef struct FluffObject FluffObject;
 
-typedef struct ObjectTable ObjectTable;
-
 typedef struct ObjectTable {
     size_t        ref_count;
-    ObjectTable * vptr;
+    FluffObject * vptr;
 } ObjectTable;
 
 typedef struct FluffObject {

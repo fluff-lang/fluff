@@ -592,7 +592,11 @@ FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj
 
     if (inherits) {
         _new_object(subobjs, self->instance, self->klass->inherits);
-        _object_get_table(subobjs)->vptr = table;
+        _object_get_table(subobjs)->vptr = self;
+        printf("(inherits %s, vptr = %p)\n", 
+            (self->klass ? self->klass->name.data : NULL),
+            table
+        );
         ++subobjs;
     }
 
@@ -603,18 +607,15 @@ FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj
         } else {
             _new_object(subobjs, self->instance, property->type);
         }
-        printf("allocated member '%s' (%s) at %p\n", 
-            property->name.data, property->type->name.data, subobjs
-        );
+        // printf("allocated member '%s' (%s) at %p\n", 
+        //     property->name.data, property->type->name.data, subobjs
+        // );
         ++subobjs;
     }
 
     self->data._data = table;
 
-    printf("allocated object of type '%s' on ptr %p (inherits %s, vptr = %p)\n", 
-        self->klass->name.data, 
-        table, (self->klass->inherits ? self->klass->inherits->name.data : NULL), self->data._data
-    );
+    printf("allocated object of type '%s' on ptr %p\n", self->klass->name.data, table);
 }
 
 FLUFF_PRIVATE_API ObjectTable * _object_get_table(FluffObject * self) {
@@ -662,7 +663,12 @@ FLUFF_PRIVATE_API FluffObject * _object_downcast(FluffObject * self, FluffKlass 
 }
 
 FLUFF_PRIVATE_API FluffObject * _object_upcast(FluffObject * self, FluffKlass * klass) {
-    // TODO: upcasting
+    FluffObject * obj = self;
+    while (obj) {
+        if (fluff_object_is_same_class(obj, klass))
+            return obj;
+        obj = _object_get_table(obj)->vptr;
+    }
     return NULL;
 }
 
