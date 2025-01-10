@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This project is mentally painful to deal with. I will go on a hiatus from it until I get to put my head on place and get back into working on it.
+
 <img align="left" src="images/logo_white.png" width="390px">
 
 Fluff is a programming language designed for type safety, low memory usage and speed. Think of it as a mix of Rust, C++ and Typescript, all bundled in a lovingly written bundle for the true :3c users.
