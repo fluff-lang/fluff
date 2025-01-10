@@ -6,9 +6,12 @@
 #include <base.h>
 #include <error.h>
 #include <core/object.h>
-#include <core/instance.h>
-#include <core/module.h>
 #include <core/class.h>
+#include <core/method.h>
+#include <core/string.h>
+#include <core/module.h>
+#include <core/instance.h>
+#include <core/vm.h>
 #include <core/config.h>
 
 #include <math.h>
@@ -236,9 +239,9 @@ FLUFF_CONSTEXPR_V OperationInfo string_op_info = {
     NULL, NULL, NULL
 };
 
-/* -=============
-     Instance
-   =============- */
+/* -===========
+     Object
+   ===========- */
 
 FLUFF_API FluffObject * fluff_new_object(FluffInstance * instance, FluffKlass * klass) {
     FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
@@ -403,8 +406,10 @@ FLUFF_API void * fluff_object_unbox(FluffObject * self) {
         return &self->data._float;
     if (self->klass == self->instance->string_klass)
         return &self->data._string;
+    // if (self->klass == self->instance->array_klass)
+    //     return &self->data._array;
     if (self->data._data)
-        return self->data._data;
+        return _object_table_get_subobjects(_object_get_table(self->data._data));
     fluff_push_error("failed to unbox object");
     return NULL;
 }
@@ -426,33 +431,36 @@ FLUFF_API FluffObject * fluff_object_as(FluffObject * self, FluffKlass * klass) 
         fluff_push_error("cannot convert an object to/from an incomplete type");
         return NULL;
     }
-    if (klass == klass->instance->bool_klass) {
-        if (self->klass == self->instance->int_klass)
-            return _bool2int(self);
-        if (self->klass == self->instance->float_klass)
-            return _bool2float(self);
-        if (self->klass == self->instance->string_klass)
-            return _bool2string(self);
-    }
-    if (klass == klass->instance->int_klass) {
-        if (self->klass == self->instance->bool_klass)
-            return _int2bool(self);
-        if (self->klass == self->instance->float_klass)
-            return _int2float(self);
-        if (self->klass == self->instance->string_klass)
-            return _int2string(self);
-    }
-    if (klass == klass->instance->float_klass) {
-        if (self->klass == self->instance->bool_klass)
-            return _float2bool(self);
-        if (self->klass == self->instance->int_klass)
-            return _float2int(self);
-        if (self->klass == self->instance->string_klass)
-            return _float2string(self);
-    }
 
-    FluffObject * obj = _object_cast(self, klass);
-    if (obj) return obj;
+    if (FLUFF_HAS_FLAG(klass->flags, FLUFF_KLASS_PRIMITIVE)) {
+        if (klass == klass->instance->bool_klass) {
+            if (self->klass == self->instance->int_klass)
+                return _bool2int(self);
+            if (self->klass == self->instance->float_klass)
+                return _bool2float(self);
+            if (self->klass == self->instance->string_klass)
+                return _bool2string(self);
+        }
+        if (klass == klass->instance->int_klass) {
+            if (self->klass == self->instance->bool_klass)
+                return _int2bool(self);
+            if (self->klass == self->instance->float_klass)
+                return _int2float(self);
+            if (self->klass == self->instance->string_klass)
+                return _int2string(self);
+        }
+        if (klass == klass->instance->float_klass) {
+            if (self->klass == self->instance->bool_klass)
+                return _float2bool(self);
+            if (self->klass == self->instance->int_klass)
+                return _float2int(self);
+            if (self->klass == self->instance->string_klass)
+                return _float2string(self);
+        }
+    } else {
+        FluffObject * obj = _object_cast(self, klass);
+        if (obj) return obj;
+    }
 
     fluff_push_error(
         "cannot convert an object of type '%s' to type '%s'", 
@@ -537,13 +545,16 @@ FLUFF_PRIVATE_API void _new_float_object(FluffObject * self, FluffInstance * ins
 }
 
 FLUFF_PRIVATE_API void _new_string_object(FluffObject * self, FluffInstance * instance, const char * str) {
-    _new_string_object_n(self, instance, str, strlen(str));
+    FLUFF_CLEANUP(self);
+    self->instance  = instance;
+    self->klass     = instance->string_klass;
+    _new_string(&self->data._string, str);
 }
 
 FLUFF_PRIVATE_API void _new_string_object_n(FluffObject * self, FluffInstance * instance, const char * str, size_t len) {
     FLUFF_CLEANUP(self);
     self->instance  = instance;
-    self->klass     = instance->bool_klass;
+    self->klass     = instance->string_klass;
     _new_string_n(&self->data._string, str, len);
 }
 
@@ -555,14 +566,16 @@ FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj) {
         if (FLUFF_HAS_FLAG(self->klass->flags, FLUFF_KLASS_PRIMITIVE)) {
             self->data = obj->data;
         } else {
-            //_object_alloc(self, obj);
+            _object_alloc(self, obj);
         }
     }
 }
 
 FLUFF_PRIVATE_API void _ref_object(FluffObject * self, FluffObject * obj) {
-    if (self->klass) {
-        if (FLUFF_HAS_FLAG(self->klass->flags, FLUFF_KLASS_PRIMITIVE)) {
+    self->instance = obj->instance;
+    self->klass    = obj->klass;
+    if (obj->klass) {
+        if (FLUFF_HAS_FLAG(obj->klass->flags, FLUFF_KLASS_PRIMITIVE)) {
             self->data = obj->data;
         } else {
             ++_object_get_table(obj)->ref_count;
@@ -590,19 +603,27 @@ FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj
 
     FluffObject * subobjs = _object_table_get_subobjects(table);
 
+    FluffObject * clone_subobjs = NULL;
+    if (clone_obj) clone_subobjs = _object_table_get_subobjects(_object_get_table(clone_obj));
+
     if (inherits) {
-        _new_object(subobjs, self->instance, self->klass->inherits);
+        if (clone_obj) {
+            _clone_object(subobjs, clone_subobjs);
+            ++clone_subobjs;
+        } else {
+            _new_object(subobjs, self->instance, self->klass->inherits);
+        }
         _object_get_table(subobjs)->vptr = self;
-        printf("(inherits %s, vptr = %p)\n", 
-            (self->klass ? self->klass->name.data : NULL),
-            table
-        );
+        // printf("(inherits %s, vptr = %p)\n", (self->klass ? self->klass->name.data : NULL), table);
         ++subobjs;
     }
 
     for (size_t i = 0; i < self->klass->property_count; ++i) {
         KlassProperty * property = &self->klass->properties[i];
-        if (property->def_value) {
+        if (clone_obj) {
+            _clone_object(subobjs, clone_subobjs);
+            ++clone_subobjs;
+        } else if (property->def_value) {
             _clone_object(subobjs, property->def_value);
         } else {
             _new_object(subobjs, self->instance, property->type);
@@ -615,7 +636,7 @@ FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj
 
     self->data._data = table;
 
-    printf("allocated object of type '%s' on ptr %p\n", self->klass->name.data, table);
+    // printf("allocated object of type '%s' on ptr %p\n", self->klass->name.data, table);
 }
 
 FLUFF_PRIVATE_API ObjectTable * _object_get_table(FluffObject * self) {
@@ -663,6 +684,7 @@ FLUFF_PRIVATE_API FluffObject * _object_downcast(FluffObject * self, FluffKlass 
 }
 
 FLUFF_PRIVATE_API FluffObject * _object_upcast(FluffObject * self, FluffKlass * klass) {
+    // TODO: make the class being virtual a requirement for upcasting and downcasting
     FluffObject * obj = self;
     while (obj) {
         if (fluff_object_is_same_class(obj, klass))
@@ -676,7 +698,7 @@ FLUFF_PRIVATE_API void _object_deref(FluffObject * self) {
     ObjectTable * table = _object_get_table(self);
     if (--table->ref_count > 0) return;
 
-    printf("object at %p (%s) has to be freed\n", self, self->klass->name.data);
+    // printf("object at %p (%s) has to be freed\n", self, self->klass->name.data);
 
     FluffObject * objs = _object_table_get_subobjects(table);
 
@@ -684,7 +706,7 @@ FLUFF_PRIVATE_API void _object_deref(FluffObject * self) {
     const size_t obj_count = self->klass->property_count + inherits;
     
     if (inherits) {
-        printf("vtable to %p found\n", _object_get_table(objs)->vptr);
+        // printf("vtable to %p found\n", _object_get_table(objs)->vptr);
         _object_get_table(objs)->vptr = NULL;
     }
 

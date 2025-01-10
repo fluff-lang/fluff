@@ -24,24 +24,16 @@ FLUFF_API void fluff_private_test() {
     // fluff_interpreter_read_file(interpret, "../hello.fluff");
     // fluff_free_interpreter(interpret);
 
-    FluffKlass * foo_klass = _new_class("Foo", 3, NULL);
-    _class_add_property(foo_klass, "a", instance->int_klass, fluff_new_int_object(instance, 1));
-    _module_add_class(module, foo_klass);
+    FluffVM * vm = fluff_new_vm(instance, module);
+    fluff_vm_push_int(vm, 1);
+    fluff_vm_push_int(vm, 2);
+    fluff_vm_push_int(vm, 3);
 
-    FluffKlass * bar_klass = _new_class("Bar", 3, foo_klass);
-    //_class_add_property(bar_klass, "b", instance->int_klass, fluff_new_int_object(instance, 2));
-    _module_add_class(module, bar_klass);
-
-    FluffKlass * baz_klass = _new_class("Baz", 3, bar_klass);
-    _class_add_property(baz_klass, "c", instance->int_klass, fluff_new_int_object(instance, 3));
-    _module_add_class(module, baz_klass);
-
-    FluffObject * obj_a = fluff_new_object(instance, baz_klass);
-    FluffObject * obj_b = fluff_object_as(obj_a, foo_klass);
-    FluffObject * obj_c = fluff_object_as(obj_b, bar_klass);
-    printf("%p %p\n", obj_a, obj_c);
-    fluff_free_object(obj_b);
-    fluff_free_object(obj_a);
+    for (int i = -3; i != 0; ++i)
+        printf("%d ", * (int *)fluff_object_unbox(fluff_vm_at(vm, i)));
+    putchar('\n');
+    
+    fluff_free_vm(vm);
 }
 
 /* -==========

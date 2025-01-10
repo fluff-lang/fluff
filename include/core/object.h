@@ -9,11 +9,6 @@
 #include <base.h>
 #include <core/string.h>
 
-/* -================
-     ObjectArray
-   ================- */
-
-
 /* -===========
      Object
    ===========- */
@@ -36,15 +31,15 @@ typedef struct FluffObject {
         FluffFloat  _float;
         FluffString _string;
 
-        // ObjectArray _array;
+        //FluffObjectArray * _array;
 
         void * _data;
     } data;
 } FluffObject;
 
 FLUFF_API FluffObject * fluff_new_object(FluffInstance * instance, FluffKlass * klass);
+FLUFF_API FluffObject * fluff_new_composite_object(FluffInstance * instance, FluffKlass * klass);
 FLUFF_API FluffObject * fluff_new_null_object(FluffInstance * instance, FluffKlass * klass);
-FLUFF_API FluffObject * fluff_new_array_object(FluffInstance * instance, FluffKlass * klass);
 FLUFF_API FluffObject * fluff_new_bool_object(FluffInstance * instance, FluffBool v);
 FLUFF_API FluffObject * fluff_new_int_object(FluffInstance * instance, FluffInt v);
 FLUFF_API FluffObject * fluff_new_float_object(FluffInstance * instance, FluffFloat v);

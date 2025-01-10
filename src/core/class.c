@@ -6,10 +6,12 @@
 #include <base.h>
 #include <error.h>
 #include <core/class.h>
+#include <core/method.h>
 #include <core/string.h>
 #include <core/module.h>
 #include <core/instance.h>
 #include <core/object.h>
+#include <core/vm.h>
 #include <core/config.h>
 
 /* -==============
@@ -27,7 +29,7 @@ FLUFF_PRIVATE_API FluffKlass * _new_class(const char * name, size_t len, FluffKl
     _new_string_n(&self->name, name, len);
     self->inherits = inherits;
     if (inherits) {
-        self->flags         = FLUFF_HAS_FLAG(inherits->flags, FLUFF_KLASS_VIRTUAL);
+        self->flags         = inherits->flags;
         self->inherit_depth = inherits->inherit_depth + 1;
         // TODO: enforce max inherited classes limit (128)
     }
@@ -40,8 +42,9 @@ FLUFF_PRIVATE_API void _free_class(FluffKlass * self) {
         _free_string(&property->name);
         if (property->def_value) fluff_free_object(property->def_value);
     }
-    _free_string(&self->name);
+    FLUFF_CLEANUP_N(self->properties, self->property_count);
     fluff_free(self->properties);
+    _free_string(&self->name);
     FLUFF_CLEANUP(self);
     fluff_free(self);
 }

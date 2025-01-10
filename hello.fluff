@@ -1,11 +1,3 @@
-class Foo {
-    
-}
-
-class Bar : Foo {
-    
-}
-
 let b: Foo = null;
 {
     let a = Bar.new();
