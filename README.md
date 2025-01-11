@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> This project is mentally painful to deal with. I will go on a hiatus from it until I get to put my head on place and get back into working on it.
+> This project is mentally painful to deal with. I will try to keep working on it, however, it will be slower and don't expect me to make daily commits anymore.
 
 <img align="left" src="images/logo_white.png" width="390px">
 

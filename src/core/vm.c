@@ -21,6 +21,8 @@
 
 FLUFF_PRIVATE_API void _vm_frame_push(VMFrame * self, FluffObject * obj) {
     VMEntry * entry = fluff_alloc(NULL, sizeof(VMEntry));
+    printf("allocated entry %p\n", entry);
+    FLUFF_CLEANUP(entry);
     _ref_object(&entry->obj, obj);
     entry->prev      = self->last_entry;
     self->last_entry = entry;
@@ -28,8 +30,9 @@ FLUFF_PRIVATE_API void _vm_frame_push(VMFrame * self, FluffObject * obj) {
 }
 
 FLUFF_PRIVATE_API void _vm_frame_pop(VMFrame * self) {
-    if (self->entry_count == 0) return;
+    if (self->entry_count == 0 || !self->last_entry) return;
     VMEntry * entry = self->last_entry;
+    printf("deallocated entry %p\n", entry);
     self->last_entry = entry->prev;
     _free_object(&entry->obj);
     fluff_free(entry);
@@ -37,12 +40,8 @@ FLUFF_PRIVATE_API void _vm_frame_pop(VMFrame * self) {
 }
 
 FLUFF_PRIVATE_API void _vm_frame_popn(VMFrame * self, size_t count) {
-    while (count-- > 0 && self->last_entry) {
-        VMEntry * entry  = self->last_entry;
-        self->last_entry = entry->prev;
-        _free_object(&entry->obj);
-        fluff_free(entry);
-        --self->entry_count;
+    while (count-- > 0) {
+        _vm_frame_pop(self);
     }
 }
 
@@ -211,6 +210,7 @@ FLUFF_PRIVATE_API void _vm_clear_frames(FluffVM * self) {
     while (self->frame_count > 0) {
         _vm_pop_frame(self, 0);
     }
+    _vm_frame_clear(&self->current_frame);
     fluff_free(self->frames);
     self->frames         = NULL;
     self->frame_capacity = 0;
