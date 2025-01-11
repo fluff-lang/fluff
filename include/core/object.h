@@ -16,6 +16,7 @@
 typedef struct FluffInstance FluffInstance;
 typedef struct FluffKlass FluffKlass;
 typedef struct FluffObject FluffObject;
+typedef struct FluffMethod FluffMethod;
 
 typedef struct ObjectTable {
     size_t        ref_count;
@@ -33,18 +34,19 @@ typedef struct FluffObject {
 
         //FluffObjectArray * _array;
 
-        void * _data;
+        FluffMethod * _method;
+        void        * _data;
     } data;
 } FluffObject;
 
 FLUFF_API FluffObject * fluff_new_object(FluffInstance * instance, FluffKlass * klass);
-FLUFF_API FluffObject * fluff_new_composite_object(FluffInstance * instance, FluffKlass * klass);
 FLUFF_API FluffObject * fluff_new_null_object(FluffInstance * instance, FluffKlass * klass);
 FLUFF_API FluffObject * fluff_new_bool_object(FluffInstance * instance, FluffBool v);
 FLUFF_API FluffObject * fluff_new_int_object(FluffInstance * instance, FluffInt v);
 FLUFF_API FluffObject * fluff_new_float_object(FluffInstance * instance, FluffFloat v);
 FLUFF_API FluffObject * fluff_new_string_object(FluffInstance * instance, const char * str);
 FLUFF_API FluffObject * fluff_new_string_object_n(FluffInstance * instance, const char * str, size_t len);
+FLUFF_API FluffObject * fluff_new_function_object(FluffInstance * instance, FluffMethod * method);
 FLUFF_API FluffObject * fluff_ref_object(FluffObject * self);
 FLUFF_API FluffObject * fluff_clone_object(FluffObject * self);
 FLUFF_API void          fluff_free_object(FluffObject * self);
@@ -92,6 +94,7 @@ FLUFF_PRIVATE_API void _new_int_object(FluffObject * self, FluffInstance * insta
 FLUFF_PRIVATE_API void _new_float_object(FluffObject * self, FluffInstance * instance, FluffFloat v);
 FLUFF_PRIVATE_API void _new_string_object(FluffObject * self, FluffInstance * instance, const char * str);
 FLUFF_PRIVATE_API void _new_string_object_n(FluffObject * self, FluffInstance * instance, const char * str, size_t len);
+FLUFF_PRIVATE_API void _new_function_object(FluffObject * self, FluffInstance * instance, FluffMethod * method);
 FLUFF_PRIVATE_API void _ref_object(FluffObject * self, FluffObject * obj);
 FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj);
 FLUFF_PRIVATE_API void _free_object(FluffObject * self);

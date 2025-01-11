@@ -781,6 +781,9 @@ FLUFF_PRIVATE_API ASTNode * _analyser_read_expr_pratt(Analyser * self, int prec_
     self->state.in_expr = true;
 
     if (prev_state.in_decl) {
+        _analyser_error("sorry, type checking is disabled temporarily due to implementation issues");
+        _analyser_check(lhs);
+
         _analyser_expect(self->index + 1, TOKEN_CATEGORY_OPERATOR_COLON, TOKEN_CATEGORY_RPAREN);
         _analyser_check(lhs);
 

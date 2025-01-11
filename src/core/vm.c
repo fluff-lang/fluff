@@ -21,7 +21,7 @@
 
 FLUFF_PRIVATE_API void _vm_frame_push(VMFrame * self, FluffObject * obj) {
     VMEntry * entry = fluff_alloc(NULL, sizeof(VMEntry));
-    printf("allocated entry %p\n", entry);
+    // printf("allocated entry %p\n", entry);
     FLUFF_CLEANUP(entry);
     _ref_object(&entry->obj, obj);
     entry->prev      = self->last_entry;
@@ -32,9 +32,10 @@ FLUFF_PRIVATE_API void _vm_frame_push(VMFrame * self, FluffObject * obj) {
 FLUFF_PRIVATE_API void _vm_frame_pop(VMFrame * self) {
     if (self->entry_count == 0 || !self->last_entry) return;
     VMEntry * entry = self->last_entry;
-    printf("deallocated entry %p\n", entry);
+    // printf("deallocated entry %p\n", entry);
     self->last_entry = entry->prev;
     _free_object(&entry->obj);
+    FLUFF_CLEANUP(entry);
     fluff_free(entry);
     --self->entry_count;
 }
@@ -50,11 +51,11 @@ FLUFF_PRIVATE_API void _vm_frame_clear(VMFrame * self) {
 }
 
 FLUFF_PRIVATE_API VMEntry * _vm_frame_at(VMFrame * self, int idx) {
-    size_t index = (size_t)(idx < 0 ? -idx - 1 : self->entry_count - idx);
-    if (index >= self->entry_count) return NULL;
+    size_t index = (size_t)(idx < 0 ? -idx : self->entry_count - idx) - 1;
+    if (index > self->entry_count) return NULL;
 
     VMEntry * entry = self->last_entry;
-    while (index > 0) {
+    while (index > 0 && entry) {
         entry = entry->prev;
         --index;
     }
@@ -78,7 +79,9 @@ FLUFF_API void fluff_free_vm(FluffVM * self) {
 }
 
 FLUFF_API FluffObject * fluff_vm_at(FluffVM * self, int idx) {
-    return &_vm_frame_at(&self->current_frame, idx)->obj;
+    VMEntry * entry = _vm_frame_at(&self->current_frame, idx);
+    if (!entry) return NULL;
+    return &entry->obj;
 }
 
 FLUFF_API FluffResult fluff_vm_push(FluffVM * self, FluffObject * obj) {
@@ -161,6 +164,26 @@ FLUFF_API size_t fluff_vm_frame_size(FluffVM * self) {
     return self->frame_count;
 }
 
+FLUFF_PRIVATE_API FluffResult fluff_vm_invoke(FluffVM * self, FluffObject * object, size_t argc) {
+    FluffMethod * method = object->data._method;
+    if (!method) {
+        fluff_push_error("attempt to call a null method");
+        return FLUFF_FAILURE;
+    }
+    if (method->callback) {
+        // TODO: typechecking
+        _vm_push_frame(self, argc);
+        FluffResult res = method->callback(self, argc);
+        // TODO: make void functions not return anything
+        if (method->ret_type == method->ret_type->instance->void_klass)
+            fluff_vm_push_object(self, method->ret_type->instance->void_klass);
+        _vm_pop_frame(self, 1);
+        return res;
+    }
+    fluff_push_error("attempt to call an incomplete method ('%s')", method->name.data);
+    return FLUFF_FAILURE;
+}
+
 FLUFF_PRIVATE_API void _new_vm(FluffVM * self, FluffInstance * instance, FluffModule * module) {
     FLUFF_CLEANUP(self);
     self->instance = instance;
@@ -172,37 +195,70 @@ FLUFF_PRIVATE_API void _free_vm(FluffVM * self) {
     FLUFF_CLEANUP(self);
 }
 
-FLUFF_PRIVATE_API FluffResult _vm_push_frame(FluffVM * self, int preserve) {
+FLUFF_PRIVATE_API FluffResult _vm_push_frame(FluffVM * self, size_t preserve) {
+    if (preserve > self->current_frame.entry_count) {
+        fluff_push_error("attempted to preserve %zu entries on a %zu entry frame", 
+            preserve, self->current_frame.entry_count
+        );
+        return FLUFF_FAILURE;
+    }
+
     if (self->frame_count >= self->frame_capacity)
         self->frames = fluff_alloc(self->frames, sizeof(VMFrame) * (++self->frame_capacity));
 
     VMFrame * last_frame = &self->frames[self->frame_count++];
 
-    * last_frame = self->current_frame;
-    FLUFF_CLEANUP(&self->current_frame);
+    VMEntry * top_entry    = NULL;
+    VMEntry * bottom_entry = NULL;
+    if (preserve != 0) {
+        top_entry    = _vm_frame_at(&self->current_frame, -((int)preserve));
+        bottom_entry = self->current_frame.last_entry;
+        
+        self->current_frame.entry_count -= preserve;
+        self->current_frame.last_entry   = top_entry->prev;
+        top_entry->prev                  = NULL;
+    }
 
-    while (preserve != 0) {
-        _vm_frame_push(&self->current_frame, &_vm_frame_at(last_frame, preserve)->obj);
-        if (preserve < 0) ++preserve;
-        else              --preserve;
+    * last_frame = self->current_frame;
+
+    if (preserve != 0) {
+        self->current_frame.last_entry  = bottom_entry;
+        self->current_frame.entry_count = preserve;
     }
 
     return FLUFF_OK;
 }
 
-FLUFF_PRIVATE_API FluffResult _vm_pop_frame(FluffVM * self, int preserve) {
+FLUFF_PRIVATE_API FluffResult _vm_pop_frame(FluffVM * self, size_t preserve) {
+    if (preserve > self->current_frame.entry_count) {
+        fluff_push_error("attempted to preserve %zu entries on a %zu entry frame", 
+            preserve, self->current_frame.entry_count
+        );
+        return FLUFF_FAILURE;
+    }
+
     if (self->frame_count == 0) return FLUFF_OK;
 
-    VMFrame * last_frame = &self->frames[self->frame_count - 1];
+    VMFrame * last_frame = &self->frames[--self->frame_count];
 
-    while (preserve != 0) {
-        _vm_frame_push(last_frame, &_vm_frame_at(&self->current_frame, preserve)->obj);
-        if (preserve < 0) ++preserve;
-        else              --preserve;
+    VMEntry * top_entry    = NULL;
+    VMEntry * bottom_entry = NULL;
+
+    if (preserve > 0) {
+        top_entry    = _vm_frame_at(&self->current_frame, -((int)preserve));
+        bottom_entry = self->current_frame.last_entry;
+
+        self->current_frame.last_entry   = top_entry->prev;
+        self->current_frame.entry_count -= preserve;
+
+        top_entry->prev          = last_frame->last_entry;
+        last_frame->last_entry   = bottom_entry;
+        last_frame->entry_count += preserve;
     }
 
     _vm_frame_clear(&self->current_frame);
-    self->current_frame = self->frames[--self->frame_count];
+
+    self->current_frame = self->frames[self->frame_count];
     return FLUFF_OK;
 }
 

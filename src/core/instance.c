@@ -94,37 +94,45 @@ FLUFF_API FluffModule * fluff_instance_get_module_by_name(FluffInstance * self, 
 /* -=- Private -=- */
 FLUFF_PRIVATE_API void _new_instance(FluffInstance * self) {
     FLUFF_CLEANUP(self);
-    self->void_klass        = _new_class("void", 4, NULL);
-    self->void_klass->index = FLUFF_KLASS_VOID;
-    self->void_klass->flags = FLUFF_SET_FLAG(self->void_klass->flags, FLUFF_KLASS_PRIMITIVE);
+    self->void_klass           = _new_class("void", 4, NULL);
+    self->void_klass->index    = FLUFF_KLASS_VOID;
+    self->void_klass->instance = self;
+    self->void_klass->flags    = FLUFF_SET_FLAG(self->void_klass->flags, FLUFF_KLASS_PRIMITIVE);
 
-    self->bool_klass        = _new_class("bool", 4, NULL);
-    self->bool_klass->index = FLUFF_KLASS_BOOL;
-    self->bool_klass->flags = FLUFF_SET_FLAG(self->bool_klass->flags, FLUFF_KLASS_PRIMITIVE);
+    self->bool_klass           = _new_class("bool", 4, NULL);
+    self->bool_klass->index    = FLUFF_KLASS_BOOL;
+    self->bool_klass->instance = self;
+    self->bool_klass->flags    = FLUFF_SET_FLAG(self->bool_klass->flags, FLUFF_KLASS_PRIMITIVE);
 
-    self->int_klass        = _new_class("int", 3, NULL);
-    self->int_klass->index = FLUFF_KLASS_INT;
-    self->int_klass->flags = FLUFF_SET_FLAG(self->int_klass->flags, FLUFF_KLASS_PRIMITIVE);
+    self->int_klass           = _new_class("int", 3, NULL);
+    self->int_klass->index    = FLUFF_KLASS_INT;
+    self->int_klass->instance = self;
+    self->int_klass->flags    = FLUFF_SET_FLAG(self->int_klass->flags, FLUFF_KLASS_PRIMITIVE);
 
-    self->float_klass        = _new_class("float", 5, NULL);
-    self->float_klass->index = FLUFF_KLASS_FLOAT;
-    self->float_klass->flags = FLUFF_SET_FLAG(self->float_klass->flags, FLUFF_KLASS_PRIMITIVE);
+    self->float_klass           = _new_class("float", 5, NULL);
+    self->float_klass->index    = FLUFF_KLASS_FLOAT;
+    self->float_klass->instance = self;
+    self->float_klass->flags    = FLUFF_SET_FLAG(self->float_klass->flags, FLUFF_KLASS_PRIMITIVE);
 
-    self->string_klass        = _new_class("string", 6, NULL);
-    self->string_klass->index = FLUFF_KLASS_STRING;
-    self->string_klass->flags = FLUFF_SET_FLAG(self->string_klass->flags, FLUFF_KLASS_PRIMITIVE);
+    self->string_klass           = _new_class("string", 6, NULL);
+    self->string_klass->index    = FLUFF_KLASS_STRING;
+    self->string_klass->instance = self;
+    self->string_klass->flags    = FLUFF_SET_FLAG(self->string_klass->flags, FLUFF_KLASS_PRIMITIVE);
 
-    self->object_klass        = _new_class("object", 6, NULL);
-    self->object_klass->index = FLUFF_KLASS_OBJECT;
-    self->object_klass->flags = FLUFF_SET_FLAG(self->object_klass->flags, FLUFF_KLASS_PRIMITIVE);
+    self->object_klass           = _new_class("object", 6, NULL);
+    self->object_klass->index    = FLUFF_KLASS_OBJECT;
+    self->object_klass->instance = self;
+    self->object_klass->flags    = FLUFF_SET_FLAG(self->object_klass->flags, FLUFF_KLASS_PRIMITIVE);
 
-    self->array_klass        = _new_class("array", 5, self->object_klass);
-    self->array_klass->index = FLUFF_KLASS_ARRAY;
-    self->array_klass->flags = FLUFF_SET_FLAG(self->array_klass->flags, FLUFF_KLASS_PRIMITIVE);
+    self->array_klass           = _new_class("array", 5, self->object_klass);
+    self->array_klass->index    = FLUFF_KLASS_ARRAY;
+    self->array_klass->instance = self;
+    self->array_klass->flags    = FLUFF_SET_FLAG(self->array_klass->flags, FLUFF_KLASS_PRIMITIVE);
 
-    self->func_klass        = _new_class("func", 4, self->object_klass);
-    self->func_klass->index = FLUFF_KLASS_FUNC;
-    self->func_klass->flags = FLUFF_SET_FLAG(self->func_klass->flags, FLUFF_KLASS_PRIMITIVE);
+    self->func_klass           = _new_class("func", 4, self->object_klass);
+    self->func_klass->index    = FLUFF_KLASS_FUNC;
+    self->func_klass->instance = self;
+    self->func_klass->flags    = FLUFF_SET_FLAG(self->func_klass->flags, FLUFF_KLASS_PRIMITIVE);
 }
 
 FLUFF_PRIVATE_API void _free_instance(FluffInstance * self) {

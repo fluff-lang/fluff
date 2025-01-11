@@ -28,7 +28,7 @@ typedef struct FluffKlass FluffKlass;
 typedef struct FluffObject FluffObject;
 typedef struct FluffVM FluffVM;
 
-typedef FluffResult(* FluffMethodCallback)(FluffVM *);
+typedef FluffResult(* FluffMethodCallback)(FluffVM *, size_t);
 
 typedef struct MethodProperty {
     FluffString   name;
@@ -38,9 +38,12 @@ typedef struct MethodProperty {
 
 // This struct represents a method.
 typedef struct FluffMethod {
-    FluffString name;
+    size_t ref_count;
 
-    FluffKlass * next_klass;
+    FluffModule * module;
+    FluffKlass  * klass;
+
+    FluffString name;
 
     FluffKlass     * ret_type; // TODO: change this name to "klass"
     MethodProperty * properties;
@@ -55,7 +58,6 @@ typedef struct FluffMethod {
 FLUFF_PRIVATE_API FluffMethod * _new_method(const char * name, size_t len);
 FLUFF_PRIVATE_API void          _free_method(FluffMethod * self);
 
-FLUFF_PRIVATE_API size_t      _method_add_property(FluffMethod * self, const char * name, FluffKlass * type);
-FLUFF_PRIVATE_API FluffResult _method_invoke(FluffMethod * self, FluffVM * vm);
+FLUFF_PRIVATE_API size_t _method_add_property(FluffMethod * self, const char * name, FluffKlass * type);
 
 #endif

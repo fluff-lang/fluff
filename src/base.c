@@ -14,6 +14,18 @@
      Internals
    ==============- */
 
+FluffResult println_callback(FluffVM * vm, size_t argc) {
+    for (size_t i = 0; i < argc; ++i) {
+        if (i > 0) putchar('\t');
+        FluffObject * obj = fluff_vm_at(vm, i);
+        if (!obj) continue;
+        FluffString * string = fluff_object_unbox(obj);
+        if (string) printf("%s", string->data);
+    }
+    putchar('\n');
+    return FLUFF_OK;
+}
+
 FLUFF_API void fluff_private_test() {
     FluffInstance * instance = fluff_get_instance();
 
@@ -24,16 +36,22 @@ FLUFF_API void fluff_private_test() {
     // fluff_interpreter_read_file(interpret, "../hello.fluff");
     // fluff_free_interpreter(interpret);
 
-    FluffVM * vm = fluff_new_vm(instance, module);
-    fluff_vm_push_int(vm, 1);
-    fluff_vm_push_int(vm, 2);
-    fluff_vm_push_int(vm, 3);
+    FluffMethod * method = _new_method("println", 7);
+    _method_add_property(method, "v", instance->string_klass);
+    method->ret_type = instance->void_klass;
+    method->callback = println_callback;
 
-    for (int i = -3; i != 0; ++i)
-        printf("%d ", * (int *)fluff_object_unbox(fluff_vm_at(vm, i)));
-    putchar('\n');
-    
+    FluffObject * method_obj = fluff_new_function_object(instance, method);
+
+    FluffVM * vm = fluff_new_vm(instance, module);
+    fluff_vm_push_string(vm, "Hello");
+    fluff_vm_push_string(vm, "from");
+    fluff_vm_push_string(vm, "Fluff!");
+    fluff_vm_invoke(vm, method_obj, 3);
     fluff_free_vm(vm);
+
+    fluff_free_object(method_obj);
+    _free_method(method);
 }
 
 /* -==========

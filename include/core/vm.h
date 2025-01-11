@@ -71,13 +71,13 @@ FLUFF_API size_t        fluff_vm_size(FluffVM * self);
 FLUFF_API size_t        fluff_vm_frame_top(FluffVM * self);
 FLUFF_API size_t        fluff_vm_frame_size(FluffVM * self);
 
-FLUFF_API FluffResult fluff_vm_invoke(FluffVM * self, FluffObject * object);
+FLUFF_API FluffResult fluff_vm_invoke(FluffVM * self, FluffObject * object, size_t argc);
 
 FLUFF_PRIVATE_API void _new_vm(FluffVM * self, FluffInstance * instance, FluffModule * module);
 FLUFF_PRIVATE_API void _free_vm(FluffVM * self);
 
-FLUFF_PRIVATE_API FluffResult _vm_push_frame(FluffVM * self, int preserve);
-FLUFF_PRIVATE_API FluffResult _vm_pop_frame(FluffVM * self, int preserve);
+FLUFF_PRIVATE_API FluffResult _vm_push_frame(FluffVM * self, size_t preserve);
+FLUFF_PRIVATE_API FluffResult _vm_pop_frame(FluffVM * self, size_t preserve);
 FLUFF_PRIVATE_API void        _vm_clear_frames(FluffVM * self);
 
 #endif

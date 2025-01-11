@@ -289,6 +289,12 @@ FLUFF_API FluffObject * fluff_new_string_object_n(FluffInstance * instance, cons
     return self;
 }
 
+FLUFF_API FluffObject * fluff_new_function_object(FluffInstance * instance, FluffMethod * method) {
+    FluffObject * self = fluff_new_null_object(instance, instance->func_klass);
+    _new_function_object(self, instance, method);
+    return self;
+}
+
 FLUFF_API FluffObject * fluff_ref_object(FluffObject * self) {
     FluffObject * obj = fluff_new_null_object(self->instance, self->klass);
     _ref_object(obj, self);
@@ -558,6 +564,13 @@ FLUFF_PRIVATE_API void _new_string_object_n(FluffObject * self, FluffInstance * 
     _new_string_n(&self->data._string, str, len);
 }
 
+FLUFF_PRIVATE_API void _new_function_object(FluffObject * self, FluffInstance * instance, FluffMethod * method) {
+    FLUFF_CLEANUP(self);
+    self->instance     = instance;
+    self->klass        = instance->func_klass;
+    self->data._method = method;
+}
+
 FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj) {
     // TODO: cloning native and common objects
     self->klass    = obj->klass;
@@ -588,6 +601,8 @@ FLUFF_PRIVATE_API void _free_object(FluffObject * self) {
     if (self->klass) {
         if (self->klass == self->instance->string_klass) {
             _free_string(&self->data._string);
+        } else if (self->klass == self->instance->func_klass) {
+            _free_method(self->data._method);
         } else if (!FLUFF_HAS_FLAG(self->klass->flags, FLUFF_KLASS_PRIMITIVE) && self->data._data) {
             _object_deref(self);
         }

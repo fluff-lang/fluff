@@ -27,10 +27,13 @@ FLUFF_PRIVATE_API FluffMethod * _new_method(const char * name, size_t len) {
     FluffMethod * self = fluff_alloc(NULL, sizeof(FluffMethod));
     FLUFF_CLEANUP(self);
     _new_string_n(&self->name, name, len);
+    self->ref_count = 1;
     return self;
 }
 
 FLUFF_PRIVATE_API void _free_method(FluffMethod * self) {
+    if (--self->ref_count > 0) return;
+
     while (self->property_count != 0) {
         MethodProperty * property = &self->properties[--self->property_count];
         _free_string(&property->name);
@@ -51,12 +54,4 @@ FLUFF_PRIVATE_API size_t _method_add_property(FluffMethod * self, const char * n
     _new_string(&property.name, name);
     self->properties[property.index] = property;
     return property.index;
-}
-
-FLUFF_PRIVATE_API FluffResult _method_invoke(FluffMethod * self, FluffVM * vm) {
-    if (self->callback) return self->callback(vm);
-    fluff_push_error("attempt to call an incomplete method ('%s')", 
-        self->name.data
-    );
-    return FLUFF_FAILURE;
 }
