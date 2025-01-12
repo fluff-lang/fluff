@@ -32,26 +32,9 @@ FLUFF_API void fluff_private_test() {
     FluffModule * module = fluff_new_module("main");
     fluff_instance_add_module(instance, module);
 
-    // FluffInterpreter * interpret = fluff_new_interpreter(module);
-    // fluff_interpreter_read_file(interpret, "../hello.fluff");
-    // fluff_free_interpreter(interpret);
-
-    FluffMethod * method = _new_method("println", 7);
-    _method_add_property(method, "v", instance->string_klass);
-    method->ret_type = instance->void_klass;
-    method->callback = println_callback;
-
-    FluffObject * method_obj = fluff_new_function_object(instance, method);
-
-    FluffVM * vm = fluff_new_vm(instance, module);
-    fluff_vm_push_string(vm, "Hello");
-    fluff_vm_push_string(vm, "from");
-    fluff_vm_push_string(vm, "Fluff!");
-    fluff_vm_invoke(vm, method_obj, 3);
-    fluff_free_vm(vm);
-
-    fluff_free_object(method_obj);
-    _free_method(method);
+    FluffInterpreter * interpret = fluff_new_interpreter(module);
+    fluff_interpreter_read_file(interpret, "../hello.fluff");
+    fluff_free_interpreter(interpret);
 }
 
 FLUFF_API void fluff_cli(int argc, const char ** argv) {

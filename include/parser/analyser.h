@@ -1,6 +1,6 @@
 #pragma once
-#ifndef FLUFF_CORE_ANALYSER_H
-#define FLUFF_CORE_ANALYSER_H
+#ifndef FLUFF_PARSER_ANALYSER_H
+#define FLUFF_PARSER_ANALYSER_H
 
 /* -=============
      Includes

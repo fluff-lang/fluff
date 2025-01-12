@@ -1,6 +1,6 @@
 #pragma once
-#ifndef FLUFF_CORE_LEXER_H
-#define FLUFF_CORE_LEXER_H
+#ifndef FLUFF_PARSER_LEXER_H
+#define FLUFF_PARSER_LEXER_H
 
 /* -=============
      Includes
