@@ -19,7 +19,7 @@ int main(int argc, const char * argv[]) {
     FluffInstance * instance = fluff_new_instance();
     fluff_set_instance(instance);
 
-    fluff_private_test();
+    fluff_cli(argc, argv);
 
     fluff_logger_print();
 

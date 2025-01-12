@@ -40,6 +40,9 @@
 #define fluff_push_warn(...)  fluff_push_log(FLUFF_LOG_TYPE_WARN, NULL, 0, 0, __VA_ARGS__)
 #define fluff_push_error(...) fluff_push_log(FLUFF_LOG_TYPE_ERROR, NULL, 0, 0, __VA_ARGS__)
 
+#define fluff_alloc_or(__ptr)\
+            if (!(__ptr)) { fluff_push_error("out of memory"); return NULL; }
+
 /* -========
      Log
    ========- */

@@ -134,4 +134,6 @@ FLUFF_API void   fluff_default_free_mutex(void * self);
 
 FLUFF_API void fluff_private_test();
 
+FLUFF_API void fluff_cli(int argc, const char ** argv);
+
 #endif

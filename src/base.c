@@ -54,6 +54,10 @@ FLUFF_API void fluff_private_test() {
     _free_method(method);
 }
 
+FLUFF_API void fluff_cli(int argc, const char ** argv) {
+    fluff_private_test();
+}
+
 /* -==========
      Utils
    ==========- */
