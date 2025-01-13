@@ -31,10 +31,7 @@ FLUFF_API void fluff_private_test() {
 
     FluffModule * module = fluff_new_module("main");
     fluff_instance_add_module(instance, module);
-
-    FluffInterpreter * interpret = fluff_new_interpreter(module);
-    fluff_interpreter_read_file(interpret, "../hello.fluff");
-    fluff_free_interpreter(interpret);
+    
 }
 
 FLUFF_API void fluff_cli(int argc, const char ** argv) {

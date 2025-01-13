@@ -9,7 +9,6 @@
 #include <base.h>
 #include <core/string.h>
 #include <parser/lexer.h>
-#include <parser/ast.h>
 
 /* -================
      Interpreter
@@ -21,8 +20,6 @@ typedef struct FluffInterpreter {
     const char * path;
 
     FluffModule * module;
-
-    AST ast;
 } FluffInterpreter;
 
 FLUFF_API FluffInterpreter * fluff_new_interpreter(FluffModule * module);

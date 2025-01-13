@@ -6,7 +6,6 @@
 #include <base.h>
 #include <parser/interpret.h>
 #include <parser/lexer.h>
-#include <parser/analyser.h>
 #include <core/config.h>
 
 /* -================
@@ -16,7 +15,6 @@
 FLUFF_API FluffInterpreter * fluff_new_interpreter(FluffModule * module) {
     FluffInterpreter * self = fluff_alloc(NULL, sizeof(FluffInterpreter));
     self->module = module;
-    _new_ast(&self->ast, self);
     return self;
 }
 
@@ -60,17 +58,17 @@ FLUFF_PRIVATE_API FluffResult fluff_interpreter_read(FluffInterpreter * self, co
     }
     _lexer_dump(&lexer);
     
-    Analyser analyser;
-    _new_analyser(&analyser, &lexer);
-    if (_analyser_read(&analyser) == FLUFF_FAILURE) {
-        _free_lexer(&lexer);
-        _free_analyser(&analyser);
-        return FLUFF_FAILURE;
-    }
-    _ast_dump(&self->ast);
-    _ast_node_solve(&self->ast.root);
-    
-    _free_analyser(&analyser);
+    //Analyser analyser;
+    //_new_analyser(&analyser, &lexer);
+    //if (_analyser_read(&analyser) == FLUFF_FAILURE) {
+    //    _free_lexer(&lexer);
+    //    _free_analyser(&analyser);
+    //    return FLUFF_FAILURE;
+    //}
+    //_ast_dump(&self->ast);
+    //_ast_node_solve(&self->ast.root);
+    //_free_analyser(&analyser);
+
     _free_lexer(&lexer);
 
     return FLUFF_OK;

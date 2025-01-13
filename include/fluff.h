@@ -15,8 +15,7 @@
 #include <core/vm.h>
 #include <parser/text.h>
 #include <parser/lexer.h>
-#include <parser/ast.h>
-#include <parser/analyser.h>
+#include <parser/codegen.h>
 #include <parser/interpret.h>
 
 #endif

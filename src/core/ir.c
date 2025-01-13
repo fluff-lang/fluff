@@ -37,13 +37,42 @@ static OpcodeInfo op_info[0xff] = {
     MAKE_OPCODE(0x14, PUSH_FLOAT,  FLOAT,  NONE)
     MAKE_OPCODE(0x15, PUSH_STRING, STRING, NONE)
     MAKE_OPCODE(0x16, PUSH_OBJECT, NONE,   NONE)
-    MAKE_OPCODE(0x17, PUSH_ARRAY,  NONE,   NONE)
-    MAKE_OPCODE(0x21, ADD,         NONE,   NONE)
-    MAKE_OPCODE(0x22, SUB,         NONE,   NONE)
-    MAKE_OPCODE(0x23, MUL,         NONE,   NONE)
-    MAKE_OPCODE(0x24, DIV,         NONE,   NONE)
-    MAKE_OPCODE(0x25, MOD,         NONE,   NONE)
-    MAKE_OPCODE(0x26, POW,         NONE,   NONE)
+    MAKE_OPCODE(0x17, PUSH_ARRAY,  INT,    NONE)
+    MAKE_OPCODE(0x18, POP,         NONE,   NONE)
+    MAKE_OPCODE(0x19, POPN,        INT,    NONE)
+    MAKE_OPCODE(0x20, NEW_LOCAL,   NONE,   NONE)
+    MAKE_OPCODE(0x21, SET_LOCAL,   NONE,   NONE)
+    MAKE_OPCODE(0x22, GET_LOCAL,   NONE,   NONE)
+    MAKE_OPCODE(0x23, GET_MEMBER,  NONE,   NONE)
+    MAKE_OPCODE(0x24, SET_MEMBER,  NONE,   NONE)
+    MAKE_OPCODE(0x25, GET_ITEM,    NONE,   NONE)
+    MAKE_OPCODE(0x26, SET_ITEM,    NONE,   NONE)
+    MAKE_OPCODE(0x31, ADD,         NONE,   NONE)
+    MAKE_OPCODE(0x32, SUB,         NONE,   NONE)
+    MAKE_OPCODE(0x33, MUL,         NONE,   NONE)
+    MAKE_OPCODE(0x34, DIV,         NONE,   NONE)
+    MAKE_OPCODE(0x35, MOD,         NONE,   NONE)
+    MAKE_OPCODE(0x36, POW,         NONE,   NONE)
+    MAKE_OPCODE(0x37, BIT_AND,     NONE,   NONE)
+    MAKE_OPCODE(0x38, BIT_OR,      NONE,   NONE)
+    MAKE_OPCODE(0x39, BIT_XOR,     NONE,   NONE)
+    MAKE_OPCODE(0x3a, BIT_SHL,     NONE,   NONE)
+    MAKE_OPCODE(0x3b, BIT_SHR,     NONE,   NONE)
+    MAKE_OPCODE(0x3c, BIT_NOT,     NONE,   NONE)
+    MAKE_OPCODE(0x3d, PROMOTE,     NONE,   NONE)
+    MAKE_OPCODE(0x3e, NEGATE,      NONE,   NONE)
+    MAKE_OPCODE(0x40, EQ,          NONE,   NONE)
+    MAKE_OPCODE(0x41, NE,          NONE,   NONE)
+    MAKE_OPCODE(0x42, GT,          NONE,   NONE)
+    MAKE_OPCODE(0x43, GE,          NONE,   NONE)
+    MAKE_OPCODE(0x44, LT,          NONE,   NONE)
+    MAKE_OPCODE(0x45, LE,          NONE,   NONE)
+    MAKE_OPCODE(0x46, AND,         NONE,   NONE)
+    MAKE_OPCODE(0x47, OR,          NONE,   NONE)
+    MAKE_OPCODE(0x48, NOT,         NONE,   NONE)
+    MAKE_OPCODE(0x49, IS,          NONE,   NONE)
+    MAKE_OPCODE(0x4a, AS,          NONE,   NONE)
+    MAKE_OPCODE(0x70, CALL,        INT,    NONE)
 };
 
 FLUFF_CONSTEXPR size_t _ir_chunk_dump_arg(IRChunk * self, size_t i, uint8_t type) {
@@ -93,7 +122,7 @@ FLUFF_PRIVATE_API void _ir_chunk_append(IRChunk * self, const void * data, size_
     memcpy(&self->data[index], data, size);
 }
 
-FLUFF_PRIVATE_API void _ir_chunk_append_opcode(IRChunk * self, IROpcode opcode) {
+FLUFF_PRIVATE_API void _ir_chunk_append_opcode(IRChunk * self, uint8_t opcode) {
     _ir_chunk_append(self, &opcode, sizeof(opcode));
 }
 

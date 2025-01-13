@@ -10,6 +10,9 @@ project(Fluff LANGUAGES C VERSION 0.1.0)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# Settings
+set(FLAGS -gdwarf-4 -Wall -O0 -DFLUFF_DEBUG)
+
 # Source
 file(GLOB_RECURSE SOURCES src/*.c)
 file(GLOB_RECURSE INCLUDES include/*.h)
@@ -26,12 +29,13 @@ set_target_properties(libfluff PROPERTIES OUTPUT_NAME "fluff")
 
 target_link_libraries(libfluff ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(libfluff m)
+target_compile_options(libfluff PUBLIC ${FLAGS})
 
 # CLI
 add_executable(fluff src/main.c)
 
 target_link_libraries(fluff PRIVATE libfluff)
-target_compile_options(fluff PUBLIC -gdwarf-4 -Wall -O0 -DFLUFF_DEBUG)
+target_compile_options(fluff PUBLIC ${FLAGS})
 
 # Install
 install(TARGETS libfluff
