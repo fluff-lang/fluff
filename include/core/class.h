@@ -13,10 +13,12 @@
      Macros
    ===========- */
 
+/* -=- Class attributes -=- */
 #define FLUFF_KLASS_PRIMITIVE 0x1
 #define FLUFF_KLASS_VIRTUAL   0x2
 #define FLUFF_KLASS_PUBLIC    0x4
 
+/* -=- Primitives -=- */
 #define FLUFF_KLASS_VOID   0x0
 #define FLUFF_KLASS_BOOL   0x1
 #define FLUFF_KLASS_INT    0x2
@@ -36,8 +38,8 @@ typedef struct FluffKlass FluffKlass;
 typedef struct FluffObject FluffObject;
 
 typedef struct KlassProperty {
-    FluffString   name;
-    FluffKlass  * type; // TODO: change this name to "klass"
+    char          name[FLUFF_MAX_FIELD_NAME_LEN];
+    FluffKlass  * klass;
     FluffObject * def_value;
     size_t        index;
 } KlassProperty;
@@ -49,7 +51,7 @@ typedef struct FluffKlass {
     FluffKlass    * inherits;
     size_t          inherit_depth;
 
-    FluffString name;
+    char name[FLUFF_MAX_CLASS_NAME_LEN + 1];
 
     FluffKlass * next_klass;
 
@@ -60,11 +62,15 @@ typedef struct FluffKlass {
     size_t  index;
 } FluffKlass;
 
+/* -=- C/Dtors -=- */
 FLUFF_PRIVATE_API FluffKlass * _new_class(const char * name, size_t len, FluffKlass * inherits);
 FLUFF_PRIVATE_API void         _free_class(FluffKlass * self);
 
-FLUFF_PRIVATE_API size_t _class_add_property(FluffKlass * self, const char * name, FluffKlass * type, FluffObject * def_value);
+/* -=- Property management -=- */
+FLUFF_PRIVATE_API size_t _class_add_property(FluffKlass * self, const char * name, FluffKlass * klass, FluffObject * def_value);
 FLUFF_PRIVATE_API size_t _class_get_property_index(FluffKlass * self, const char * name);
+
+/* -=- Misc -=- */
 FLUFF_PRIVATE_API size_t _class_get_alloc_size(FluffKlass * self);
 
 #endif

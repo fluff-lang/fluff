@@ -47,9 +47,9 @@ FLUFF_API FluffModule * fluff_instance_add_module(FluffInstance * self, FluffMod
     FluffModule *  last    = NULL;
     FluffModule ** current = &self->modules;
     while (* current) {
-        if (fluff_string_equal(&module->name, &(* current)->name)) {
+        if (strncmp(module->name, (* current)->name, FLUFF_MAX_MODULE_NAME_LEN)) {
             fluff_push_error("instance already has a module with the name '%.*s'", 
-                (int)module->name.length, module->name.data
+                FLUFF_STR_BUFFER_FMT(module->name)
             );
             return NULL;
         }
@@ -69,7 +69,7 @@ FLUFF_API void fluff_instance_remove_module(FluffInstance * self, const char * n
     FluffModule * top    = NULL;
     FluffModule * module = self->modules;
     while (module->next_module) {
-        if (fluff_string_equal_s(&module->name, name)) {
+        if (strncmp(module->name, name, FLUFF_MAX_MODULE_NAME_LEN)) {
             if (top) top->next_module = module->next_module;
             // This has to be nulled out before so the module doesn't think it's inside an instance
             module->instance = NULL;
@@ -85,7 +85,8 @@ FLUFF_API FluffModule * fluff_instance_get_module_by_name(FluffInstance * self, 
     if (!self->modules) return NULL;
     FluffModule * module = self->modules;
     while (module->next_module) {
-        if (fluff_string_equal_s(&module->name, name)) return module;
+        if (strncmp(module->name, name, FLUFF_MAX_MODULE_NAME_LEN))
+            return module;
         module = module->next_module;
     }
     return NULL;

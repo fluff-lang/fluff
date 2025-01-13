@@ -330,8 +330,8 @@ FLUFF_API FluffKlass * fluff_object_get_class(FluffObject * self) {
                     return string_op_info.__name(lhs, rhs, result);\
             }\
             fluff_push_error(\
-                "cannot " __op " an object of type '%s' " __connective " type '%s'\n",\
-                lhs->klass->name.data, rhs->klass->name.data\
+                "cannot " __op " an object of type '%.*s' " __connective " type '%.*s'\n",\
+                FLUFF_STR_BUFFER_FMT(lhs->klass->name), FLUFF_STR_BUFFER_FMT(rhs->klass->name)\
             );\
             return FLUFF_FAILURE;\
         }
@@ -346,8 +346,8 @@ FLUFF_API FluffKlass * fluff_object_get_class(FluffObject * self) {
                 return float_op_info.__name(self, result);\
             if (self->klass == self->instance->string_klass && string_op_info.__name)\
                 return string_op_info.__name(self, result);\
-            fluff_push_error(\
-                "cannot " __op " an object of type '%s'\n", self->klass->name.data\
+            fluff_push_error("cannot " __op " an object of type '%.*s'\n",\
+                FLUFF_STR_BUFFER_FMT(self->klass->name)\
             );\
             return FLUFF_FAILURE;\
         }
@@ -365,8 +365,8 @@ FLUFF_API FluffKlass * fluff_object_get_class(FluffObject * self) {
                     return string_op_info.__name(lhs, rhs, result);\
             }\
             fluff_push_error(\
-                "cannot compare an object of type '%s' with type '%s'\n",\
-                lhs->klass->name.data, rhs->klass->name.data\
+                "cannot compare an object of type '%.*s' with type '%.*s'\n",\
+                FLUFF_STR_BUFFER_FMT(lhs->klass->name), FLUFF_STR_BUFFER_FMT(rhs->klass->name)\
             );\
             return FLUFF_FAILURE;\
         }
@@ -469,8 +469,8 @@ FLUFF_API FluffObject * fluff_object_as(FluffObject * self, FluffKlass * klass) 
     }
 
     fluff_push_error(
-        "cannot convert an object of type '%s' to type '%s'", 
-        self->klass->name.data, klass->name.data
+        "cannot convert an object of type '%.*s' to type '%.*s'", 
+        FLUFF_STR_BUFFER_FMT(self->klass->name), FLUFF_STR_BUFFER_FMT(klass->name)
     );
     return NULL;
 }
@@ -488,7 +488,7 @@ FLUFF_API FluffObject * fluff_object_get_member(FluffObject * self, const char *
     FluffObject * obj = self;
     while (obj && obj->klass) {
         const size_t inherits = (obj->klass->inherits ? 1 : 0);
-        printf("walking thru type %s at %p (inherits = %zu)\n", obj->klass->name.data, obj, inherits);
+        //printf("walking thru type %s at %p (inherits = %zu)\n", obj->klass->name.data, obj, inherits);
 
         size_t idx = _class_get_property_index(obj->klass, name);
         if (idx != SIZE_MAX) return _object_table_get_subobjects(_object_get_table(obj)) + idx + inherits;
@@ -641,7 +641,7 @@ FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj
         } else if (property->def_value) {
             _clone_object(subobjs, property->def_value);
         } else {
-            _new_object(subobjs, self->instance, property->type);
+            _new_object(subobjs, self->instance, property->klass);
         }
         // printf("allocated member '%s' (%s) at %p\n", 
         //     property->name.data, property->type->name.data, subobjs

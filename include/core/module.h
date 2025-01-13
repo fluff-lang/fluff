@@ -22,7 +22,7 @@ typedef struct FluffModule FluffModule;
 typedef struct FluffModule {
     FluffInstance * instance;
 
-    FluffString name;
+    char name[FLUFF_MAX_MODULE_NAME_LEN + 1];
 
     FluffKlass * klasses;
 

@@ -12,31 +12,31 @@
      Macros
    ===========- */
 
-/// Checkes if a condition is true, if it's not, panics with a custom message.
+/* Checkes if a condition is true, if it's not, panics with a custom message */
 #define fluff_assert(__cond, ...) {\
             if (!(bool)(__cond))\
                 fluff_panic_fmt("[" __FILE__ "]:\n\tassertion (" #__cond ") failed! " __VA_ARGS__);\
         }
 
-// Creates a fluff version given major, minor, and patch numbers.
+/*! Creates a fluff version given major, minor, and patch numbers */
 #define fluff_make_version(__major, __minor, __patch)\
         ((FluffVersion){ .major = (__major), .minor = (__minor), .patch = (__patch) })
 
-// Gives the current fluff version.
+/*! Gives the current fluff version relative to the header */
 #define FLUFF_CURRENT_VERSION fluff_make_version(0, 1, 0)
 
 /* -=============
      Version
    =============- */
 
-// This struct represents a fluff version.
+/*! Represents a fluff version */
 typedef struct FluffVersion {
     uint8_t major;
     uint8_t minor;
     uint8_t patch;
 } FluffVersion;
 
-// Checkes if 2 fluff versions are compatible.
+/*! Checkes if 2 fluff versions are compatible */
 FLUFF_API FluffResult fluff_version_is_compatible(FluffVersion a, FluffVersion b);
 
 /* -==================

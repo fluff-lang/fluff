@@ -27,11 +27,14 @@ FluffResult println_callback(FluffVM * vm, size_t argc) {
 }
 
 FLUFF_API void fluff_private_test() {
+    // FluffInterpreter * interpret = fluff_new_interpreter(module);
+    // fluff_interpreter_read_file(interpret, "/home/saka/projects/fluff/hello.fluff");
+    // fluff_free_interpreter(interpret);
+
     FluffInstance * instance = fluff_get_instance();
 
     FluffModule * module = fluff_new_module("main");
     fluff_instance_add_module(instance, module);
-    
 }
 
 FLUFF_API void fluff_cli(int argc, const char ** argv) {
@@ -134,15 +137,4 @@ FLUFF_API void fluff_default_mutex_unlock(void * self) {
 FLUFF_API void fluff_default_free_mutex(void * self) {
     pthread_mutex_destroy((pthread_mutex_t *)self);
     fluff_free(self);
-}
-
-#define ENUM_CASE(str) case str: return #str;
-
-FLUFF_API const char * fluff_enum_to_string(FluffEnum e) {
-    switch (e) {
-        ENUM_CASE(FLUFF_ERROR)
-        ENUM_CASE(FLUFF_RUNTIME_ERROR)
-        ENUM_CASE(FLUFF_COMPILE_ERROR)
-        default: return "";
-    }
 }

@@ -32,18 +32,18 @@ FLUFF_API void fluff_free_module(FluffModule * self) {
 
 /* -=- Getters -=- */
 FLUFF_API const char * fluff_module_get_name(const FluffModule * self) {
-    return self->name.data;
+    return self->name;
 }
 
 /* -=- Private -=- */
 FLUFF_PRIVATE_API void _new_module(FluffModule * self, const char * name) {
     FLUFF_CLEANUP(self);
-    _new_string(&self->name, name);
+    strncpy(self->name, name, FLUFF_MAX_MODULE_NAME_LEN);
 }
 
 FLUFF_PRIVATE_API void _free_module(FluffModule * self) {
     if (self->instance) {
-        fluff_instance_remove_module(self->instance, self->name.data);
+        fluff_instance_remove_module(self->instance, self->name);
         return;
     }
     FluffKlass * current = self->klasses;
@@ -52,7 +52,6 @@ FLUFF_PRIVATE_API void _free_module(FluffModule * self) {
         current = current->next_klass;
         _free_class(old);
     }
-    _free_string(&self->name);
     FLUFF_CLEANUP(self);
 }
 
@@ -60,9 +59,9 @@ FLUFF_PRIVATE_API size_t _module_add_class(FluffModule * self, FluffKlass * klas
     size_t i = 0;
     FluffKlass ** current = &self->klasses;
     while (* current) {
-        if (fluff_string_equal(&klass->name, &(* current)->name)) {
-            fluff_push_error("module already has a class named '%.*s'", 
-                (int)klass->name.length, klass->name.data
+        if (strncmp(klass->name, (* current)->name, FLUFF_MAX_MODULE_NAME_LEN)) {
+            fluff_push_error("module '%s' already has a class named '%s'", 
+                FLUFF_STR_BUFFER_FMT(self->name), FLUFF_STR_BUFFER_FMT(klass->name)
             );
             return SIZE_MAX;
         }

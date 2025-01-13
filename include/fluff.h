@@ -4,6 +4,9 @@
 
 #include <base.h>
 #include <error.h>
+#include <util/limits.h>
+#include <util/macros.h>
+#include <util/container.h>
 #include <core/config.h>
 #include <core/string.h>
 #include <core/instance.h>
