@@ -1,33 +1,15 @@
-# Analyser
-    [x] Arrays
-    [x] Subscript
-    [ ] Unpacking operator
-    [ ] Classes
-    [ ] `as` and `is` operator
+- [ ] Make instances not really a thing inside everything
+- [ ] Proper error handling
+- [ ] Class methods
+- [ ] Public/private methods
+- [ ] Private methods
 
-# AST
-    [ ] Nested if/else optimization
-    [ ] Function arguments optimization
-    [ ] Branch prediction
-    [ ] Tail wind optimization
+- [ ] Make objects handle common and generic classes properly
+- [ ] Make func and array not be required to be generic
 
-# Types
-    [ ] Type checking
-
-# IR
-    [ ] Specialized bytecode architecture
-    [ ] JIT?
-
-# Instance
-    [x] Modules
-
-# Modules
-    [x] Base
-    [-] Classes
-    [ ] Functions
-
-# General
-    [ ] More settings
-    [ ] More documentation
-    [ ] Making structs private
-    [ ] Better error handling when out of memory
+- [ ] Enforce inherit class count
+- [ ] Enforce properties count per class
+- [ ] Enforce method count per class
+- [ ] Enforce modules per instance
+- [ ] Enforce instance path size
+- [ ] Enforce properties per method

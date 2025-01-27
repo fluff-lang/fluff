@@ -37,8 +37,6 @@
 #define FLUFF_THREAD_LOCAL   _Thread_local
 #define FLUFF_ATOMIC(__type) _Atomic(__type)
 
-#define FLUFF_ERROR_RETURN __attribute__((warn_unused_result))
-
 #define FLUFF_CLEANUP(__data)           memset(__data, 0, sizeof(* __data))
 #define FLUFF_CLEANUP_N(__data, __size) memset(__data, 0, __size)
 #define FLUFF_LENOF(__array)            (sizeof(__array) / sizeof(__array[0]))
@@ -58,5 +56,8 @@
 #define FLUFF_CLAMP(__v, __min, __max) ((__v) < (__min) ? (__min) : ((__v) > (__max) ? (__max) : (__v)))
 
 #define FLUFF_STR_BUFFER_FMT(__v) (int)FLUFF_LENOF(__v), __v
+
+#define FLUFF_PREDEF_STRUCT(__name)     typedef struct __name __name;
+#define FLUFF_DEF_STRUCT(__name, __def) typedef struct __name __def __name;
 
 #endif

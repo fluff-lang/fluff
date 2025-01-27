@@ -99,7 +99,7 @@ typedef struct FluffConfig {
 } FluffConfig;
 
 /*! Initializes fluff. If 'cfg' is NULL then the default configuration will be used instead. */
-FLUFF_API FluffResult fluff_init(FluffConfig * cfg, FluffVersion version) FLUFF_ERROR_RETURN;
+FLUFF_API FluffResult fluff_init(FluffConfig * cfg, FluffVersion version);
 
 /*! Closes fluff. */
 FLUFF_API void fluff_close();
@@ -114,75 +114,88 @@ FLUFF_API FluffConfig fluff_get_default_config();
 FLUFF_API FluffConfig fluff_make_config_by_args(int argc, const char ** argv);
 
 /*!
-    Allocates memory in the heap
-    This works as a mix of malloc() and realloc().
-    Memory can be also expanded by using the 'ptr' argument.
-    @param 'ptr' is the old pointer for memory expansion
-    @param 'size' is the size, in byte, of the memory chunk
-    @return The memory chunk
+ * Allocates memory in the heap
+ * This works as a mix of malloc() and realloc().
+ * Memory can be also expanded by using the 'ptr' and 'old_size' arguments.
+ * @param 'ptr' is the old pointer for memory expansion
+ * @param 'size' is the size of the memory chunk in bytes
+ * @param 'old_size' is the size of the old memory chunk in bytes
+ * @return The memory chunk
 */
 FLUFF_API void * fluff_alloc(void * ptr, size_t size);
 
 /*!
-    Frees memory from the heap
-    This works identically to free().
-    @param 'ptr' is pointer to be free'd
+ * Frees memory from the heap
+ * This works identically to free().
+ * @param 'ptr' is pointer to be free'd
+ * @param 'size' is the size of the pointer to be free'd
 */
 FLUFF_API void fluff_free(void * ptr);
 
 /*!
-    Writes text to the hosts CLI.
-    @param 'text' is text to be written
+ * Writes text to the hosts CLI.
+ * @param 'text' is text to be written
 */
 FLUFF_API void fluff_write(const char * restrict text);
 
 /*!
-    Same as fluff_write() but may write to the error output instead.
-    @param 'text' is text to be written
+ * Same as fluff_write() but may write to the error output instead.
+ * @param 'text' is text to be written
 */
 FLUFF_API void fluff_error(const char * restrict text);
 
 /*!
-    Acts as fluff_error() but immediately aborts execution.
-    @param 'text' is text to be written
+ * Acts as fluff_error() but immediately aborts execution.
+ * @param 'text' is text to be written
 */
 FLUFF_API void fluff_panic(const char * restrict what);
 
 /*!
-    Reads user input from the hosts CLI.
-    If a valid parameter is not specified, the function will return the length of the input buffer only.
-    @param 'buf' is the buffer to write the input to
-    @param 'len' is the length of the buffer pointed to by 'buf'
-    @return Length of the input buffer
+ * Reads user input from the hosts CLI.
+ * If a valid parameter is not specified, the function will return the length of the input buffer only.
+ * @param 'buf' is the buffer to write the input to
+ * @param 'len' is the length of the buffer pointed to by 'buf'
+ * @return Length of the input buffer
 */
 FLUFF_API int fluff_read(char * buf, int len);
 
-/*!
-    Reads user input from the hosts CLI.
-    If a valid parameter is not specified, the function will return the length of the input buffer only.
-    @param 'buf' is the buffer to write the input to
-    @param 'len' is the length of the buffer pointed to by 'buf'
-    @return The hashed value
-*/
+/*! Hashes a value */
 FLUFF_API uint64_t fluff_hash(const void * data, size_t size);
 
-/*!
-    Reads user input from the hosts CLI.
-    If a valid parameter is not specified, the function will return the length of the input buffer only.
-    @param 'a' hashed value 1
-    @param 'b' hashed value 2
-*/
+/*! Combines 2 prehashed values */
 FLUFF_API uint64_t fluff_hash_combine(uint64_t a, uint64_t b);
-FLUFF_API void   * fluff_new_mutex();
-FLUFF_API void     fluff_mutex_lock(void * self);
-FLUFF_API bool     fluff_mutex_try_lock(void * self);
-FLUFF_API void     fluff_mutex_unlock(void * self);
-FLUFF_API void     fluff_free_mutex(void * self);
 
+/*! Creates a mutex (POSIX style call)
+ * @see https://www.man7.org/linux/man-pages/man3/pthread_mutex_init.3.html
+*/
+FLUFF_API void * fluff_new_mutex();
+
+/*! Locks a mutex (POSIX style call)
+ * @see https://www.man7.org/linux/man-pages/man3/pthread_mutex_lock.3.html
+*/
+FLUFF_API void fluff_mutex_lock(void * self);
+
+/*! Tries to lock a mutex (POSIX style call)
+ * @see https://www.man7.org/linux/man-pages/man3/pthread_mutex_trylock.3.html
+*/
+FLUFF_API bool fluff_mutex_try_lock(void * self);
+
+/*! Unlocks a mutex (POSIX style call)
+ * @see https://www.man7.org/linux/man-pages/man3/pthread_mutex_unlock.3.html
+*/
+FLUFF_API void fluff_mutex_unlock(void * self);
+
+/*! Free's a mutex (POSIX style call)
+ * @see https://www.man7.org/linux/man-pages/man3/pthread_mutex_destroy.3.html
+*/
+FLUFF_API void fluff_free_mutex(void * self);
+
+/*! Simple formatter abstraction */
 FLUFF_API void fluff_error_fmt(const char * restrict fmt, ...);
 FLUFF_API void fluff_write_fmt(const char * restrict fmt, ...);
 FLUFF_API void fluff_panic_fmt(const char * restrict fmt, ...);
 
+/*! Simple formatter abstraction */
 FLUFF_PRIVATE_API void fluff_write_callback_fmt_v(FluffWriteFn fn, const char * restrict fmt, va_list args);
 FLUFF_PRIVATE_API void fluff_write_callback_fmt(FluffWriteFn fn, const char * restrict fmt, ...);
 

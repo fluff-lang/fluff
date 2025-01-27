@@ -26,19 +26,26 @@ FluffResult println_callback(FluffVM * vm, size_t argc) {
     return FLUFF_OK;
 }
 
-FLUFF_API void fluff_private_test() {
+FLUFF_API void fluff_private_test(FluffInstance * instance) {
     // FluffInterpreter * interpret = fluff_new_interpreter(module);
     // fluff_interpreter_read_file(interpret, "/home/saka/projects/fluff/hello.fluff");
     // fluff_free_interpreter(interpret);
 
-    FluffInstance * instance = fluff_get_instance();
+    FluffModule * mod = fluff_new_module("main");
+    fluff_instance_add_module(instance, mod);
 
-    FluffModule * module = fluff_new_module("main");
-    fluff_instance_add_module(instance, module);
+    FluffKlass * g[3];
+    g[0] = fluff_instance_get_core_class(instance, FLUFF_KLASS_INT);
+    g[1] = fluff_instance_get_core_class(instance, FLUFF_KLASS_INT);
+    g[2] = fluff_instance_get_core_class(instance, FLUFF_KLASS_INT);
+
+    FluffKlass * klass = _new_generic_class(fluff_instance_get_core_class(instance, FLUFF_KLASS_FUNC), g, 3);
+
+    _class_dump(klass);
 }
 
-FLUFF_API void fluff_cli(int argc, const char ** argv) {
-    fluff_private_test();
+FLUFF_API void fluff_cli(FluffInstance * instance, int argc, const char ** argv) {
+    fluff_private_test(instance);
 }
 
 /* -==========

@@ -75,8 +75,10 @@ FLUFF_API bool   fluff_default_mutex_try_lock(void * self);
 FLUFF_API void   fluff_default_mutex_unlock(void * self);
 FLUFF_API void   fluff_default_free_mutex(void * self);
 
-FLUFF_API void fluff_private_test();
+typedef struct FluffInstance FluffInstance;
 
-FLUFF_API void fluff_cli(int argc, const char ** argv);
+FLUFF_API void fluff_private_test(FluffInstance * instance);
+
+FLUFF_API void fluff_cli(FluffInstance * instance, int argc, const char ** argv);
 
 #endif

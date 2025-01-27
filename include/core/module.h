@@ -28,6 +28,8 @@ typedef struct FluffModule {
 
     FluffModule * next_module;
 
+    FluffModule * requirements[FLUFF_MAX_MODULE_REQUIREMENTS];
+
     size_t index;
 } FluffModule;
 
@@ -42,5 +44,6 @@ FLUFF_PRIVATE_API void _new_module(FluffModule * self, const char * name);
 FLUFF_PRIVATE_API void _free_module(FluffModule * self);
 
 FLUFF_PRIVATE_API size_t _module_add_class(FluffModule * self, FluffKlass * klass);
+FLUFF_PRIVATE_API size_t _module_add_requirement(FluffModule * self, FluffModule * module);
 
 #endif

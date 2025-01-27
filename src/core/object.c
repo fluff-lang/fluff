@@ -256,41 +256,43 @@ FLUFF_API FluffObject * fluff_new_null_object(FluffInstance * instance, FluffKla
 }
 
 FLUFF_API FluffObject * fluff_new_array_object(FluffInstance * instance, FluffKlass * klass) {
-    FluffObject * self = fluff_new_object(instance, instance->array_klass);
+    FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
     _new_array_object(self, instance, klass);
     return self;
 }
 
 FLUFF_API FluffObject * fluff_new_bool_object(FluffInstance * instance, FluffBool v) {
-    FluffObject * self = fluff_new_object(instance, instance->bool_klass);
+    FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
     _new_bool_object(self, instance, v);
     return self;
 }
 
 FLUFF_API FluffObject * fluff_new_int_object(FluffInstance * instance, FluffInt v) {
-    FluffObject * self = fluff_new_object(instance, instance->int_klass);
+    FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
     _new_int_object(self, instance, v);
     return self;
 }
 
 FLUFF_API FluffObject * fluff_new_float_object(FluffInstance * instance, FluffFloat v) {
-    FluffObject * self = fluff_new_object(instance, instance->float_klass);
+    FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
     _new_float_object(self, instance, v);
     return self;
 }
 
 FLUFF_API FluffObject * fluff_new_string_object(FluffInstance * instance, const char * str) {
-    return fluff_new_string_object_n(instance, str, strlen(str));
+    FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
+    _new_string_object(self, instance, str);
+    return self;
 }
 
 FLUFF_API FluffObject * fluff_new_string_object_n(FluffInstance * instance, const char * str, size_t len) {
-    FluffObject * self = fluff_new_object(instance, instance->string_klass);
+    FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
     _new_string_object_n(self, instance, str, len);
     return self;
 }
 
 FLUFF_API FluffObject * fluff_new_function_object(FluffInstance * instance, FluffMethod * method) {
-    FluffObject * self = fluff_new_null_object(instance, instance->func_klass);
+    FluffObject * self = fluff_alloc(NULL, sizeof(FluffObject));
     _new_function_object(self, instance, method);
     return self;
 }
@@ -320,34 +322,35 @@ FLUFF_API FluffKlass * fluff_object_get_class(FluffObject * self) {
 #define DEF_OP_FN(__name, __op, __connective)\
         FLUFF_API FluffResult fluff_object_##__name(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {\
             if (fluff_object_is_same_class(lhs, rhs->klass)) {\
-                if (lhs->klass == lhs->instance->bool_klass && bool_op_info.__name)\
+                if (lhs->klass == fluff_instance_get_core_class(lhs->instance, FLUFF_KLASS_BOOL) && bool_op_info.__name)\
                     return bool_op_info.__name(lhs, rhs, result);\
-                if (lhs->klass == lhs->instance->int_klass && int_op_info.__name)\
+                if (lhs->klass == fluff_instance_get_core_class(lhs->instance, FLUFF_KLASS_INT) && int_op_info.__name)\
                     return int_op_info.__name(lhs, rhs, result);\
-                if (lhs->klass == lhs->instance->float_klass && float_op_info.__name)\
+                if (lhs->klass == fluff_instance_get_core_class(lhs->instance, FLUFF_KLASS_FLOAT) && float_op_info.__name)\
                     return float_op_info.__name(lhs, rhs, result);\
-                if (lhs->klass == lhs->instance->string_klass && string_op_info.__name)\
+                if (lhs->klass == fluff_instance_get_core_class(lhs->instance, FLUFF_KLASS_STRING) && string_op_info.__name)\
                     return string_op_info.__name(lhs, rhs, result);\
             }\
             fluff_push_error(\
                 "cannot " __op " an object of type '%.*s' " __connective " type '%.*s'\n",\
-                FLUFF_STR_BUFFER_FMT(lhs->klass->name), FLUFF_STR_BUFFER_FMT(rhs->klass->name)\
+                FLUFF_STR_BUFFER_FMT(_class_get_common_data(lhs->klass)->name),\
+                FLUFF_STR_BUFFER_FMT(_class_get_common_data(rhs->klass)->name)\
             );\
             return FLUFF_FAILURE;\
         }
 
 #define DEF_UOP_FN(__name, __op)\
         FLUFF_API FluffResult fluff_object_##__name(FluffObject * self, FluffObject * result) {\
-            if (self->klass == self->instance->bool_klass && bool_op_info.__name)\
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_BOOL) && bool_op_info.__name)\
                 return bool_op_info.__name(self, result);\
-            if (self->klass == self->instance->int_klass && int_op_info.__name)\
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_INT) && int_op_info.__name)\
                 return int_op_info.__name(self, result);\
-            if (self->klass == self->instance->float_klass && float_op_info.__name)\
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_FLOAT) && float_op_info.__name)\
                 return float_op_info.__name(self, result);\
-            if (self->klass == self->instance->string_klass && string_op_info.__name)\
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_STRING) && string_op_info.__name)\
                 return string_op_info.__name(self, result);\
             fluff_push_error("cannot " __op " an object of type '%.*s'\n",\
-                FLUFF_STR_BUFFER_FMT(self->klass->name)\
+                FLUFF_STR_BUFFER_FMT(_class_get_common_data(self->klass)->name)\
             );\
             return FLUFF_FAILURE;\
         }
@@ -355,18 +358,19 @@ FLUFF_API FluffKlass * fluff_object_get_class(FluffObject * self) {
 #define DEF_OP_CMP_FN(__name)\
         FLUFF_API FluffResult fluff_object_##__name(FluffObject * lhs, FluffObject * rhs, FluffObject * result) {\
             if (fluff_object_is_same_class(lhs, rhs->klass)) {\
-                if (lhs->klass == lhs->instance->bool_klass && bool_op_info.__name)\
+                if (lhs->klass == fluff_instance_get_core_class(lhs->instance, FLUFF_KLASS_BOOL) && bool_op_info.__name)\
                     return bool_op_info.__name(lhs, rhs, result);\
-                if (lhs->klass == lhs->instance->int_klass && int_op_info.__name)\
+                if (lhs->klass == fluff_instance_get_core_class(lhs->instance, FLUFF_KLASS_INT) && int_op_info.__name)\
                     return int_op_info.__name(lhs, rhs, result);\
-                if (lhs->klass == lhs->instance->float_klass && float_op_info.__name)\
+                if (lhs->klass == fluff_instance_get_core_class(lhs->instance, FLUFF_KLASS_FLOAT) && float_op_info.__name)\
                     return float_op_info.__name(lhs, rhs, result);\
-                if (lhs->klass == lhs->instance->string_klass && string_op_info.__name)\
+                if (lhs->klass == fluff_instance_get_core_class(lhs->instance, FLUFF_KLASS_STRING) && string_op_info.__name)\
                     return string_op_info.__name(lhs, rhs, result);\
             }\
             fluff_push_error(\
                 "cannot compare an object of type '%.*s' with type '%.*s'\n",\
-                FLUFF_STR_BUFFER_FMT(lhs->klass->name), FLUFF_STR_BUFFER_FMT(rhs->klass->name)\
+                FLUFF_STR_BUFFER_FMT(_class_get_common_data(lhs->klass)->name),\
+                FLUFF_STR_BUFFER_FMT(_class_get_common_data(rhs->klass)->name)\
             );\
             return FLUFF_FAILURE;\
         }
@@ -404,13 +408,13 @@ FLUFF_API void * fluff_object_unbox(FluffObject * self) {
         fluff_push_error("cannot unbox an incomplete object");
         return NULL;
     }
-    if (self->klass == self->instance->bool_klass)
+    if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_BOOL))
         return &self->data._bool;
-    if (self->klass == self->instance->int_klass)
+    if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_INT))
         return &self->data._int;
-    if (self->klass == self->instance->float_klass)
+    if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_FLOAT))
         return &self->data._float;
-    if (self->klass == self->instance->string_klass)
+    if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_STRING))
         return &self->data._string;
     // if (self->klass == self->instance->array_klass)
     //     return &self->data._array;
@@ -439,28 +443,28 @@ FLUFF_API FluffObject * fluff_object_as(FluffObject * self, FluffKlass * klass) 
     }
 
     if (FLUFF_HAS_FLAG(klass->flags, FLUFF_KLASS_PRIMITIVE)) {
-        if (klass == klass->instance->bool_klass) {
-            if (self->klass == self->instance->int_klass)
+        if (klass == fluff_instance_get_core_class(klass->instance, FLUFF_KLASS_BOOL)) {
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_INT))
                 return _bool2int(self);
-            if (self->klass == self->instance->float_klass)
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_FLOAT))
                 return _bool2float(self);
-            if (self->klass == self->instance->string_klass)
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_STRING))
                 return _bool2string(self);
         }
-        if (klass == klass->instance->int_klass) {
-            if (self->klass == self->instance->bool_klass)
+        if (klass == fluff_instance_get_core_class(klass->instance, FLUFF_KLASS_INT)) {
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_BOOL))
                 return _int2bool(self);
-            if (self->klass == self->instance->float_klass)
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_FLOAT))
                 return _int2float(self);
-            if (self->klass == self->instance->string_klass)
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_STRING))
                 return _int2string(self);
         }
-        if (klass == klass->instance->float_klass) {
-            if (self->klass == self->instance->bool_klass)
+        if (klass == fluff_instance_get_core_class(klass->instance, FLUFF_KLASS_FLOAT)) {
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_BOOL))
                 return _float2bool(self);
-            if (self->klass == self->instance->int_klass)
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_INT))
                 return _float2int(self);
-            if (self->klass == self->instance->string_klass)
+            if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_STRING))
                 return _float2string(self);
         }
     } else {
@@ -470,7 +474,8 @@ FLUFF_API FluffObject * fluff_object_as(FluffObject * self, FluffKlass * klass) 
 
     fluff_push_error(
         "cannot convert an object of type '%.*s' to type '%.*s'", 
-        FLUFF_STR_BUFFER_FMT(self->klass->name), FLUFF_STR_BUFFER_FMT(klass->name)
+        FLUFF_STR_BUFFER_FMT(_class_get_common_data(self->klass)->name), 
+        FLUFF_STR_BUFFER_FMT(_class_get_common_data(klass)->name)
     );
     return NULL;
 }
@@ -487,10 +492,10 @@ FLUFF_API FluffObject * fluff_object_get_member(FluffObject * self, const char *
 
     FluffObject * obj = self;
     while (obj && obj->klass) {
-        const size_t inherits = (obj->klass->inherits ? 1 : 0);
-        //printf("walking thru type %s at %p (inherits = %zu)\n", obj->klass->name.data, obj, inherits);
+        const size_t inherits = (_class_get_common_data(obj->klass)->inherits ? 1 : 0);
+        //printf("walking thru type %s at %p (inherits = %zu)\n", obj->klass->common.name.data, obj, inherits);
 
-        size_t idx = _class_get_property_index(obj->klass, name);
+        size_t idx = _common_class_get_property_index(_class_get_common_data(obj->klass), name);
         if (idx != SIZE_MAX) return _object_table_get_subobjects(_object_get_table(obj)) + idx + inherits;
         if (inherits == 0)   return NULL;
 
@@ -525,54 +530,53 @@ FLUFF_PRIVATE_API void _new_null_object(FluffObject * self, FluffInstance * inst
 FLUFF_PRIVATE_API void _new_array_object(FluffObject * self, FluffInstance * instance, FluffKlass * klass) {
     FLUFF_CLEANUP(self);
     self->instance = instance;
-    self->klass    = instance->array_klass;
+    self->klass    = fluff_instance_get_core_class(instance, FLUFF_KLASS_ARRAY);
     // TODO: this
 }
 
 FLUFF_PRIVATE_API void _new_bool_object(FluffObject * self, FluffInstance * instance, FluffBool v) {
     FLUFF_CLEANUP(self);
     self->instance   = instance;
-    self->klass      = instance->bool_klass;
+    self->klass      = fluff_instance_get_core_class(instance, FLUFF_KLASS_BOOL);
     self->data._bool = v;
 }
 
 FLUFF_PRIVATE_API void _new_int_object(FluffObject * self, FluffInstance * instance, FluffInt v) {
     FLUFF_CLEANUP(self);
     self->instance  = instance;
-    self->klass     = instance->int_klass;
+    self->klass     = fluff_instance_get_core_class(instance, FLUFF_KLASS_INT);
     self->data._int = v;
 }
 
 FLUFF_PRIVATE_API void _new_float_object(FluffObject * self, FluffInstance * instance, FluffFloat v) {
     FLUFF_CLEANUP(self);
     self->instance    = instance;
-    self->klass       = instance->float_klass;
+    self->klass       = fluff_instance_get_core_class(instance, FLUFF_KLASS_FLOAT);
     self->data._float = v;
 }
 
 FLUFF_PRIVATE_API void _new_string_object(FluffObject * self, FluffInstance * instance, const char * str) {
     FLUFF_CLEANUP(self);
     self->instance  = instance;
-    self->klass     = instance->string_klass;
+    self->klass     = fluff_instance_get_core_class(instance, FLUFF_KLASS_STRING);
     _new_string(&self->data._string, str);
 }
 
 FLUFF_PRIVATE_API void _new_string_object_n(FluffObject * self, FluffInstance * instance, const char * str, size_t len) {
     FLUFF_CLEANUP(self);
     self->instance  = instance;
-    self->klass     = instance->string_klass;
+    self->klass     = fluff_instance_get_core_class(instance, FLUFF_KLASS_STRING);
     _new_string_n(&self->data._string, str, len);
 }
 
 FLUFF_PRIVATE_API void _new_function_object(FluffObject * self, FluffInstance * instance, FluffMethod * method) {
     FLUFF_CLEANUP(self);
     self->instance     = instance;
-    self->klass        = instance->func_klass;
+    self->klass        = fluff_instance_get_core_class(instance, FLUFF_KLASS_FUNC);
     self->data._method = method;
 }
 
 FLUFF_PRIVATE_API void _clone_object(FluffObject * self, FluffObject * obj) {
-    // TODO: cloning native and common objects
     self->klass    = obj->klass;
     self->instance = obj->instance;
     if (self->klass) {
@@ -599,9 +603,9 @@ FLUFF_PRIVATE_API void _ref_object(FluffObject * self, FluffObject * obj) {
 
 FLUFF_PRIVATE_API void _free_object(FluffObject * self) {
     if (self->klass) {
-        if (self->klass == self->instance->string_klass) {
+        if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_STRING)) {
             _free_string(&self->data._string);
-        } else if (self->klass == self->instance->func_klass) {
+        } else if (self->klass == fluff_instance_get_core_class(self->instance, FLUFF_KLASS_FUNC)) {
             _free_method(self->data._method);
         } else if (!FLUFF_HAS_FLAG(self->klass->flags, FLUFF_KLASS_PRIMITIVE) && self->data._data) {
             _object_deref(self);
@@ -611,7 +615,7 @@ FLUFF_PRIVATE_API void _free_object(FluffObject * self) {
 }
 
 FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj) {
-    const size_t inherits = (self->klass->inherits ? 1 : 0);
+    const size_t inherits = (_class_get_common_data(self->klass)->inherits ? 1 : 0);
 
     ObjectTable * table = _object_table_alloc(self->klass);
     table->ref_count = 1;
@@ -626,15 +630,15 @@ FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj
             _clone_object(subobjs, clone_subobjs);
             ++clone_subobjs;
         } else {
-            _new_object(subobjs, self->instance, self->klass->inherits);
+            _new_object(subobjs, self->instance, _class_get_common_data(self->klass)->inherits);
         }
         _object_get_table(subobjs)->vptr = self;
-        // printf("(inherits %s, vptr = %p)\n", (self->klass ? self->klass->name.data : NULL), table);
+        // printf("(inherits %s, vptr = %p)\n", (self->klass ? self->klass->common.name.data : NULL), table);
         ++subobjs;
     }
 
-    for (size_t i = 0; i < self->klass->property_count; ++i) {
-        KlassProperty * property = &self->klass->properties[i];
+    for (size_t i = 0; i < _class_get_common_data(self->klass)->property_count; ++i) {
+        KlassProperty * property = &_class_get_common_data(self->klass)->properties[i];
         if (clone_obj) {
             _clone_object(subobjs, clone_subobjs);
             ++clone_subobjs;
@@ -651,7 +655,7 @@ FLUFF_PRIVATE_API void _object_alloc(FluffObject * self, FluffObject * clone_obj
 
     self->data._data = table;
 
-    // printf("allocated object of type '%s' on ptr %p\n", self->klass->name.data, table);
+    // printf("allocated object of type '%s' on ptr %p\n", self->klass->common.name.data, table);
 }
 
 FLUFF_PRIVATE_API ObjectTable * _object_get_table(FluffObject * self) {
@@ -659,7 +663,7 @@ FLUFF_PRIVATE_API ObjectTable * _object_get_table(FluffObject * self) {
 }
 
 FLUFF_PRIVATE_API ObjectTable * _object_table_alloc(FluffKlass * klass) {
-    const size_t size = _class_get_alloc_size(klass);
+    const size_t size = _common_class_get_alloc_size(_class_get_common_data(klass));
     uint8_t * data = fluff_alloc(NULL, size);
     FLUFF_CLEANUP_N(data, size);
     return (ObjectTable *)data;
@@ -678,9 +682,9 @@ FLUFF_PRIVATE_API FluffObject * _object_cast(FluffObject * self, FluffKlass * kl
         | C | -> 2
 
     */
-    if (self->klass->inherit_depth < klass->inherit_depth)
+    if (_class_get_common_data(self->klass)->inherit_depth < _class_get_common_data(klass)->inherit_depth)
         return _object_upcast(self, klass);
-    if (self->klass->inherit_depth > klass->inherit_depth)
+    if (_class_get_common_data(self->klass)->inherit_depth > _class_get_common_data(klass)->inherit_depth)
         return _object_downcast(self, klass);
     return self;
 }
@@ -691,7 +695,7 @@ FLUFF_PRIVATE_API FluffObject * _object_downcast(FluffObject * self, FluffKlass 
         if (obj->klass == klass) {
             return fluff_ref_object(obj);
         }
-        if (!obj->klass->inherits) return NULL;
+        if (!_class_get_common_data(obj->klass)->inherits) return NULL;
 
         obj = _object_table_get_subobjects(_object_get_table(obj));
     }
@@ -713,12 +717,12 @@ FLUFF_PRIVATE_API void _object_deref(FluffObject * self) {
     ObjectTable * table = _object_get_table(self);
     if (--table->ref_count > 0) return;
 
-    // printf("object at %p (%s) has to be freed\n", self, self->klass->name.data);
+    // printf("object at %p (%s) has to be freed\n", self, self->klass->common.name.data);
 
     FluffObject * objs = _object_table_get_subobjects(table);
 
-    const size_t inherits  = (self->klass->inherits ? 1 : 0);
-    const size_t obj_count = self->klass->property_count + inherits;
+    const size_t inherits  = (self->klass->common.inherits ? 1 : 0);
+    const size_t obj_count = self->klass->common.property_count + inherits;
     
     if (inherits) {
         // printf("vtable to %p found\n", _object_get_table(objs)->vptr);

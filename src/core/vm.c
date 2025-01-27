@@ -175,12 +175,10 @@ FLUFF_PRIVATE_API FluffResult fluff_vm_invoke(FluffVM * self, FluffObject * obje
         _vm_push_frame(self, argc);
         FluffResult res = method->callback(self, argc);
         // TODO: make void functions not return anything
-        if (method->ret_type == method->ret_type->instance->void_klass)
-            fluff_vm_push_object(self, method->ret_type->instance->void_klass);
         _vm_pop_frame(self, 1);
         return res;
     }
-    fluff_push_error("attempt to call an incomplete method ('%s')", method->name.data);
+    fluff_push_error("attempt to call an incomplete method ('%s')", method->name);
     return FLUFF_FAILURE;
 }
 

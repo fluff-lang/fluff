@@ -16,27 +16,26 @@
      Macros
    ===========- */
 
-#define IR_OP_NOP         0x00
-#define IR_OP_JMP         0x01
-#define IR_OP_JZ          0x02
-#define IR_OP_JNZ         0x03
-#define IR_OP_PUSH_VOID   0x10
-#define IR_OP_PUSH_TRUE   0x11
-#define IR_OP_PUSH_FALSE  0x12
-#define IR_OP_PUSH_INT    0x13
-#define IR_OP_PUSH_FLOAT  0x14
-#define IR_OP_PUSH_STRING 0x15
-#define IR_OP_PUSH_OBJECT 0x16
-#define IR_OP_PUSH_ARRAY  0x17
-#define IR_OP_POP         0x18
-#define IR_OP_POPN        0x19
-#define IR_OP_NEW_LOCAL   0x20
-#define IR_OP_SET_LOCAL   0x21
-#define IR_OP_GET_LOCAL   0x22
-#define IR_OP_GET_MEMBER  0x23
-#define IR_OP_SET_MEMBER  0x24
-#define IR_OP_GET_ITEM    0x25
-#define IR_OP_SET_ITEM    0x26
+#define IR_OP_NOP         0x00 // void
+#define IR_OP_JMP         0x01 // int32
+#define IR_OP_JZ          0x02 // int32
+#define IR_OP_JNZ         0x03 // int32
+#define IR_OP_PUSH_VOID   0x10 // void
+#define IR_OP_PUSH_TRUE   0x11 // void
+#define IR_OP_PUSH_FALSE  0x12 // void
+#define IR_OP_PUSH_INT    0x13 // int
+#define IR_OP_PUSH_FLOAT  0x14 // float
+#define IR_OP_PUSH_STRING 0x15 // string
+#define IR_OP_PUSH_OBJECT 0x16 // string
+#define IR_OP_PUSH_ARRAY  0x17 // int
+#define IR_OP_POP         0x18 // void
+#define IR_OP_POPN        0x19 // int
+#define IR_OP_SET_LOCAL   0x20 // int
+#define IR_OP_GET_LOCAL   0x21
+#define IR_OP_GET_MEMBER  0x22
+#define IR_OP_SET_MEMBER  0x23
+#define IR_OP_GET_ITEM    0x24
+#define IR_OP_SET_ITEM    0x25
 #define IR_OP_ADD         0x31
 #define IR_OP_SUB         0x32
 #define IR_OP_MUL         0x33

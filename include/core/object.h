@@ -14,6 +14,7 @@
    ===========- */
 
 typedef struct FluffInstance FluffInstance;
+typedef struct FluffModule FluffModule;
 typedef struct FluffKlass FluffKlass;
 typedef struct FluffObject FluffObject;
 typedef struct FluffMethod FluffMethod;

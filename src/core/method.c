@@ -26,7 +26,7 @@
 FLUFF_PRIVATE_API FluffMethod * _new_method(const char * name, size_t len) {
     FluffMethod * self = fluff_alloc(NULL, sizeof(FluffMethod));
     FLUFF_CLEANUP(self);
-    _new_string_n(&self->name, name, len);
+    strncpy(self->name, name, FLUFF_MIN(len, FLUFF_MAX_FIELD_NAME_LEN));
     self->ref_count = 1;
     return self;
 }
@@ -34,13 +34,8 @@ FLUFF_PRIVATE_API FluffMethod * _new_method(const char * name, size_t len) {
 FLUFF_PRIVATE_API void _free_method(FluffMethod * self) {
     if (--self->ref_count > 0) return;
 
-    while (self->property_count != 0) {
-        MethodProperty * property = &self->properties[--self->property_count];
-        _free_string(&property->name);
-    }
     FLUFF_CLEANUP_N(self->properties, self->property_count);
     fluff_free(self->properties);
-    _free_string(&self->name);
     FLUFF_CLEANUP(self);
     fluff_free(self);
 }
@@ -51,7 +46,7 @@ FLUFF_PRIVATE_API size_t _method_add_property(FluffMethod * self, const char * n
     property.type  = type;
 
     self->properties = fluff_alloc(self->properties, sizeof(MethodProperty) * (++self->property_count));
-    _new_string(&property.name, name);
+    strncpy(property.name, name, FLUFF_MAX_FIELD_NAME_LEN);
     self->properties[property.index] = property;
     return property.index;
 }
